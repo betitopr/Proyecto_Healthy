@@ -1,5 +1,6 @@
 package com.example.proyectohealthy
 
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,8 +32,8 @@ import com.example.proyectohealthy.composables.PesoScreen
 import com.example.proyectohealthy.composables.ProgresoScreen
 import com.example.proyectohealthy.composables.SummaryScreen
 import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme
-import viewmodels.NutricionViewModel
-import viewmodels.UserSelectionsViewModel
+import com.example.proyectohealthy.viewmodels.NutricionViewModel
+import com.example.proyectohealthy.viewmodels.UserSelectionsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -177,3 +178,62 @@ fun AppNavGraph(
     }
 }
 
+
+/*
+import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import com.example.proyectohealthy.data.local.AppDatabase
+import com.example.proyectohealthy.data.repository.AlimentoRepository
+import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme
+
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Thread.setDefaultUncaughtExceptionHandler { _, e ->
+            Log.e("UncaughtException", "Unhandled exception", e)
+            Toast.makeText(this, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+        try {
+            val database = AppDatabase.getDatabase(applicationContext)
+            val repository = AlimentoRepository(database.alimentoDao())
+
+            setContent {
+                ProyectoHealthyTheme {
+                    AlimentosScreen(repository = repository)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error in onCreate", e)
+            Toast.makeText(this, "Error starting app: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+}
+*/
+
+
+
+
+
+
+@Preview(showSystemUi = true)
+@Composable
+fun appPreview(){
+    val navController = rememberNavController()
+    val userSelectionsViewModel = remember { UserSelectionsViewModel() }
+    val nutricionViewModel = remember { NutricionViewModel() }
+
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        AppNavGraph(
+            navController = navController,
+            userSelectionsViewModel = userSelectionsViewModel,
+            nutricionViewModel = nutricionViewModel,
+            modifier = Modifier.padding(innerPadding)
+        )
+    }
+}

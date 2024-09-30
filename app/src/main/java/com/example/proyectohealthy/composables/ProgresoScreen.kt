@@ -18,12 +18,12 @@ import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.core.entry.entryModelOf
-import viewmodels.NutricionViewModel
-import viewmodels.UserSelectionsViewModel
 import kotlinx.coroutines.flow.StateFlow
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import com.example.proyectohealthy.viewmodels.NutricionViewModel
+import com.example.proyectohealthy.viewmodels.UserSelectionsViewModel
 
 
 @Composable

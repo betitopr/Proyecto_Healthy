@@ -1,4 +1,4 @@
-package viewmodels
+package com.example.proyectohealthy.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -22,7 +22,7 @@ class NutricionViewModel : ViewModel() {
     private val generativeModel by lazy {
         GenerativeModel(
             modelName = "gemini-1.5-flash",
-            apiKey = BuildConfig.apiKey,
+            apiKey = BuildConfig.apiKey,  // Cambiado de BuildConfig.apiKey a BuildConfig.API_KEY
             generationConfig = generationConfig {
                 temperature = 0.7f
                 topK = 40
@@ -136,7 +136,7 @@ class NutricionViewModel : ViewModel() {
                 planDetallado = "Error al procesar el plan nutricional: ${e.message}"
             )
         }
-    }
+}
 
 data class PlanNutricional(
     val imc: Float,
