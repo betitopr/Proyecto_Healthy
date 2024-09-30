@@ -85,14 +85,22 @@ fun AppNavGraph(
                 userSelectionsViewModel = userSelectionsViewModel,
                 onContinueClick = {
                     navController.navigate("edad")
+                },
+                onBackClick = {
+                    navController.popBackStack() // Navega hacia atrás
                 }
             )
         }
+
         composable("edad") {
             EdadScreen(
                 userSelectionsViewModel = userSelectionsViewModel,
                 onContinueClick = {
-                    navController.navigate("genero")
+                    navController.navigate("genero") // Navegar a la siguiente pantalla
+                },
+                onBackClick = {
+                    // Manejar retroceso si es necesario
+                    navController.popBackStack()
                 }
             )
         }
@@ -101,9 +109,11 @@ fun AppNavGraph(
                 userSelectionsViewModel = userSelectionsViewModel,
                 onContinueClick = {
                     navController.navigate("peso")
-                }
+                },
+
             )
         }
+
         composable("peso") {
             PesoScreen(
                 userSelectionsViewModel = userSelectionsViewModel,
