@@ -4,13 +4,19 @@ package com.example.proyectohealthy
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-<<<<<<< HEAD
-import com.example.proyectohealthy.composables.MainScreen // Asegúrate de que la ruta sea correcta
-import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme // Asegúrate de que la ruta sea correcta
-=======
 import com.example.proyectohealthy.composables.AlturaScreen
 import com.example.proyectohealthy.composables.CalcularDatosSaludScreen
 import com.example.proyectohealthy.composables.ComoConseguirloScreen
@@ -28,26 +34,29 @@ import com.example.proyectohealthy.composables.SummaryScreen
 import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme
 import com.example.proyectohealthy.viewmodels.NutricionViewModel
 import com.example.proyectohealthy.viewmodels.UserSelectionsViewModel
->>>>>>> 680887606a2737c1ac5a80d8424abe3aadbe9428
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val userSelectionsViewModel = UserSelectionsViewModel()
         setContent {
             ProyectoHealthyTheme {
-                // Crea un NavController para la navegación
                 val navController = rememberNavController()
+                val userSelectionsViewModel = remember { UserSelectionsViewModel() }
+                val nutricionViewModel = remember { NutricionViewModel() }
 
-                // Superficie que usará el color de fondo según el tema
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    MainScreen(navController) // Llama a MainScreen y pasa el navController
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    AppNavGraph(
+                        navController = navController,
+                        userSelectionsViewModel = userSelectionsViewModel,
+                        nutricionViewModel = nutricionViewModel,
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
     }
 }
-<<<<<<< HEAD
-=======
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
@@ -228,4 +237,3 @@ fun appPreview(){
         )
     }
 }
->>>>>>> 680887606a2737c1ac5a80d8424abe3aadbe9428
