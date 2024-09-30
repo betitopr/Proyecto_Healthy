@@ -1,4 +1,4 @@
-package viewmodels
+package com.example.proyectohealthy.viewmodels
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf

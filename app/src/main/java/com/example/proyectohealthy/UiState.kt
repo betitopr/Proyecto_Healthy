@@ -1,6 +1,6 @@
 package com.example.proyectohealthy
 
-import viewmodels.NutricionViewModel
+import com.example.proyectohealthy.viewmodels.NutricionViewModel
 
 
 /**
@@ -29,7 +29,7 @@ sealed interface UiState {
         /**
          * Nutrition plan has been generated
          */
-        data class NutritionPlanGenerated(val data: NutricionViewModel.PlanNutricional) : Success
+        //data class NutritionPlanGenerated(val data: NutricionViewModel.PlanNutricional) : Success
     }
 
     /**
