@@ -9,11 +9,10 @@ import androidx.room.TypeConverters
 import com.example.proyectohealthy.data.local.dao.*
 import com.example.proyectohealthy.data.local.entity.*
 
-
 @Database(
     entities = [
         Alimento::class,
-        PerfilUsuario::class,
+        Perfil::class,
         PlanNutricional::class,
         Ejercicio::class,
         RecetaFavorita::class,
@@ -25,7 +24,7 @@ import com.example.proyectohealthy.data.local.entity.*
 @TypeConverters(RoomConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun alimentoDao(): AlimentoDao
-    abstract fun perfilUsuarioDao(): PerfilUsuarioDao
+    abstract fun perfilDao(): PerfilDao
     abstract fun planNutricionalDao(): PlanNutricionalDao
     abstract fun ejercicioDao(): EjercicioDao
     abstract fun recetaFavoritaDao(): RecetaFavoritaDao
@@ -40,8 +39,9 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "app_database1"
-                ).fallbackToDestructiveMigration()
+                    "app_database"
+                )
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

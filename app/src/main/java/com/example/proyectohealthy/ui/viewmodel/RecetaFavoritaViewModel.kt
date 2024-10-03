@@ -1,9 +1,9 @@
 package com.example.proyectohealthy.ui.viewmodel
 
-import RecetaFavoritaRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.RecetaFavorita
+import com.example.proyectohealthy.data.repository.RecetaFavoritaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch

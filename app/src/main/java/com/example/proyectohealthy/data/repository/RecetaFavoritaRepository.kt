@@ -1,3 +1,5 @@
+package com.example.proyectohealthy.data.repository
+
 import com.example.proyectohealthy.data.local.dao.RecetaFavoritaDao
 import com.example.proyectohealthy.data.local.entity.RecetaFavorita
 import kotlinx.coroutines.flow.Flow

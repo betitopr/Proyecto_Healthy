@@ -4,16 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.BuildConfig
 import com.example.proyectohealthy.UiState
+import com.example.proyectohealthy.data.local.entity.Perfil
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.generationConfig
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 class NutricionViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<UiState>(UiState.Initial)
@@ -32,12 +33,12 @@ class NutricionViewModel : ViewModel() {
         )
     }
 
-    fun obtenerPlanNutricional(userSelectionsViewModel: UserSelectionsViewModel) {
+    fun obtenerPlanNutricional(perfil: Perfil) {
         _uiState.value = UiState.Loading
 
         viewModelScope.launch {
             try {
-                val prompt = construirPrompt(userSelectionsViewModel)
+                val prompt = construirPrompt(perfil)
                 println("Prompt enviado a la API: $prompt")
                 val response = withContext(Dispatchers.IO) {
                     generativeModel.generateContent(prompt)
@@ -51,7 +52,7 @@ class NutricionViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 println("Error al obtener plan nutricional: ${e.message}")
-                e.printStackTrace() // Esto imprimirá el stack trace completo
+                e.printStackTrace()
                 _uiState.value = UiState.Error(e.localizedMessage ?: "Error desconocido")
             }
         }
@@ -76,21 +77,21 @@ class NutricionViewModel : ViewModel() {
         }
     }
 
-    private fun construirPrompt(viewModel: UserSelectionsViewModel): String {
+    private fun construirPrompt(perfil: Perfil): String {
         return """
     Eres un dietista y nutricionista profesional. Necesito un plan nutricional personalizado basado en los siguientes datos:
-    • Objetivo: ${viewModel.objetivo}
-    • Edad: ${viewModel.edad} años
-    • Sexo: ${viewModel.genero}
-    • Peso actual: ${viewModel.peso.value} kg
-    • Peso objetivo: ${viewModel.pesoObjetivo.value} kg
-    • Altura: ${viewModel.altura.value} cm
-    • Nivel de actividad física: ${if (viewModel.entrenamientoFuerza == "Sí") "Activo" else "Sedentario"}
-    • Entrenamiento de fuerza: ${viewModel.entrenamientoFuerza}
+    • Objetivo: ${perfil.Objetivo}
+    • Edad: ${perfil.Edad} años
+    • Sexo: ${perfil.Genero}
+    • Peso actual: ${perfil.Peso_Actual} kg
+    • Peso objetivo: ${perfil.Peso_Objetivo} kg
+    • Altura: ${perfil.Altura} cm
+    • Nivel de actividad física: ${perfil.Nivel_Actividad}
+    • Entrenamiento de fuerza: ${perfil.Entrenamiento_Fuerza}
 
     Por favor, proporciona la siguiente información en formato JSON:
     1. Calcula mi IMC y TMB.
-    2. Determina mis requerimientos energéticos diarios para ${viewModel.objetivo}.
+    2. Determina mis requerimientos energéticos diarios para ${perfil.Objetivo}.
     3. Proporciona un desglose detallado de macronutrientes (proteínas, carbohidratos y grasas vegetales).
     4. Estima el tiempo necesario para alcanzar mi peso objetivo de forma saludable, indicando una fecha aproximada.
     5. Sugiere un plan nutricional adecuado para lograr mi objetivo.
@@ -117,10 +118,7 @@ class NutricionViewModel : ViewModel() {
         val adapter = moshi.adapter(PlanNutricional::class.java)
 
         return try {
-            // Eliminar los delimitadores de código Markdown si están presentes
             val jsonString = respuesta.replace("```json", "").replace("```", "").trim()
-
-            // Intentar parsear el JSON
             adapter.fromJson(jsonString) ?: throw Exception("Error al parsear la respuesta JSON")
         } catch (e: Exception) {
             println("Error al parsear JSON: ${e.message}")

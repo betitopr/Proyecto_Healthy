@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -223,3 +223,4 @@ fun MainScreen(navController: NavHostController) {
         }
     }
 }
+*/

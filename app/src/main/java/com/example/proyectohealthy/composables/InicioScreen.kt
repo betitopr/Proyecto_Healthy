@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -49,3 +49,4 @@ fun InicioScreenPreview() {
         onContinueClick = { /* Acción a realizar cuando se haga clic en "Continuar" */ }
     )
 }
+*/

@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -79,3 +79,4 @@ fun ObjetivoScreenPreview() {
     val viewModel = UserSelectionsViewModel() // Utiliza un ViewModel de ejemplo para la vista previa
     ObjetivoScreen(userSelectionsViewModel = viewModel, onContinueClick = {})
 }
+*/

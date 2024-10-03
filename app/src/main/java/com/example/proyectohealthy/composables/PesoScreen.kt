@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -76,3 +76,4 @@ fun PesoScreenPreview() {
     val viewModel = UserSelectionsViewModel() // Utiliza un ViewModel de ejemplo para la vista previa
     PesoScreen(userSelectionsViewModel = viewModel, onContinueClick = {})
 }
+*/

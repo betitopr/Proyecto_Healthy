@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -64,4 +64,4 @@ fun PesoObjetivoScreenPreview() {
         updatePesoObjetivo(70f)
     }
     PesoObjetivoScreen(userSelectionsViewModel = viewModel, onContinueClick = {})
-}
+}*/

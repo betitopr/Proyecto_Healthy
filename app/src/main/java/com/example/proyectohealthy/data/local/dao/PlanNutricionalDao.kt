@@ -7,13 +7,13 @@ import java.util.Date
 
 @Dao
 interface PlanNutricionalDao {
-    @Query("SELECT * FROM Planes_Nutricionales")
+    @Query("SELECT * FROM plan_nutricional")
     fun getAllPlanes(): Flow<List<PlanNutricional>>
 
-    @Query("SELECT * FROM Planes_Nutricionales WHERE id_Plan = :id")
+    @Query("SELECT * FROM plan_nutricional WHERE id = :id")
     suspend fun getPlanById(id: Int): PlanNutricional?
 
-    @Query("SELECT * FROM Planes_Nutricionales WHERE id_Perfil = :userId")
+    @Query("SELECT * FROM plan_nutricional WHERE id_Perfil = :userId")
     fun getPlanesByUserId(userId: Int): Flow<List<PlanNutricional>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -25,9 +25,9 @@ interface PlanNutricionalDao {
     @Delete
     suspend fun deletePlan(plan: PlanNutricional)
 
-    @Query("SELECT * FROM Planes_Nutricionales WHERE Fecha_inicio <= :fecha AND Fecha_fin >= :fecha")
+    @Query("SELECT * FROM plan_nutricional WHERE :fecha BETWEEN Fecha_inicio AND Fecha_fin")
     fun getPlanesActivos(fecha: Date): Flow<List<PlanNutricional>>
 
-    @Query("SELECT * FROM Planes_Nutricionales WHERE Objetivos_Calorias <= :maxCalorias")
+    @Query("SELECT * FROM plan_nutricional WHERE Objetivos_Calorias <= :maxCalorias")
     fun getPlanesByMaxCalorias(maxCalorias: Int): Flow<List<PlanNutricional>>
 }

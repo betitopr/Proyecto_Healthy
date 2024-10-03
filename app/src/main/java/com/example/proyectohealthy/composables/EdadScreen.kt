@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -77,4 +77,4 @@ fun EdadScreenPreview() {
         userSelectionsViewModel = UserSelectionsViewModel(), // Proporciona una instancia de UserSelectionsViewModel
         onContinueClick = { /* Acción a realizar cuando se haga clic en "Continuar" */ }
     )
-}
+}*/

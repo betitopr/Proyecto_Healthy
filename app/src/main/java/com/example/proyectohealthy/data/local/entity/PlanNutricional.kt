@@ -1,24 +1,28 @@
 package com.example.proyectohealthy.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.Date
 
+
 @Entity(
-    tableName = "Planes_Nutricionales",
+    tableName = "plan_nutricional",
     foreignKeys = [
         ForeignKey(
-            entity = PerfilUsuario::class,
+            entity = Perfil::class,
             parentColumns = ["id_Perfil"],
             childColumns = ["id_Perfil"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index("id_Perfil")]
 )
 data class PlanNutricional(
-    @PrimaryKey val id_Plan: Int,
-    val id_Perfil: Int,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @ColumnInfo(name = "id_Perfil") val idPerfil: Int,
     val Fecha_inicio: Date,
     val Fecha_fin: Date,
     val Objetivos_Calorias: Int,

@@ -1,3 +1,6 @@
+/*
+
+
 package com.example.proyectohealthy.viewmodels
 
 import androidx.compose.runtime.getValue
@@ -62,3 +65,4 @@ class UserSelectionsViewModel : ViewModel() {
         genero = newGenero
     }
 }
+*/

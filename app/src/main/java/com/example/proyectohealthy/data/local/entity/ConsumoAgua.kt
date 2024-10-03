@@ -1,5 +1,6 @@
 package com.example.proyectohealthy.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
@@ -9,7 +10,7 @@ import java.util.Date
     tableName = "Consumo_Agua",
     foreignKeys = [
         ForeignKey(
-            entity = PerfilUsuario::class,
+            entity = Perfil::class,
             parentColumns = ["id_Perfil"],
             childColumns = ["id_Perfil"],
             onDelete = ForeignKey.CASCADE
@@ -18,7 +19,7 @@ import java.util.Date
 )
 data class ConsumoAgua(
     @PrimaryKey val id_consumo: Int,
-    val id_Perfil: Int,
+    @ColumnInfo(name = "id_Perfil") val idPerfil: Int,
     val Fecha: Date,
     val Cantidad: Float
 )

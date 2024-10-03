@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -89,3 +89,4 @@ fun SummaryScreenPreview() {
         onCalcularDatosClick = { /* Acción para calcular datos de salud */ }
     )
 }
+*/

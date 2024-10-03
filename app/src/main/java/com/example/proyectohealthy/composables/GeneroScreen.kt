@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -61,3 +61,4 @@ fun GeneroScreenPreview() {
         onContinueClick = { /* Acción a realizar cuando se haga clic en "Continuar" */ }
     )
 }
+*/

@@ -58,7 +58,7 @@ class ConsumoAguaViewModel(private val repository: ConsumoAguaRepository) : View
         viewModelScope.launch {
             repository.insertConsumoAgua(consumoAgua)
             getAllConsumosAgua()
-            updateTotalConsumoHoy(consumoAgua.id_Perfil)
+            updateTotalConsumoHoy(consumoAgua.idPerfil)
         }
     }
 
@@ -66,7 +66,7 @@ class ConsumoAguaViewModel(private val repository: ConsumoAguaRepository) : View
         viewModelScope.launch {
             repository.updateConsumoAgua(consumoAgua)
             getAllConsumosAgua()
-            updateTotalConsumoHoy(consumoAgua.id_Perfil)
+            updateTotalConsumoHoy(consumoAgua.idPerfil)
         }
     }
 
@@ -74,7 +74,7 @@ class ConsumoAguaViewModel(private val repository: ConsumoAguaRepository) : View
         viewModelScope.launch {
             repository.deleteConsumoAgua(consumoAgua)
             getAllConsumosAgua()
-            updateTotalConsumoHoy(consumoAgua.id_Perfil)
+            updateTotalConsumoHoy(consumoAgua.idPerfil)
         }
     }
 

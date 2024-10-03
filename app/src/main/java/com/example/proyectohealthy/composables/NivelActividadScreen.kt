@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -58,3 +58,4 @@ fun NivelActividadScreenPreview() {
         onContinueClick = { /* Acción a realizar cuando se haga clic en "Continuar" */ }
     )
 }
+*/

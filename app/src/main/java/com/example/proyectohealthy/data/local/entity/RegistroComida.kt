@@ -1,7 +1,9 @@
 package com.example.proyectohealthy.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.Date
 
@@ -9,7 +11,7 @@ import java.util.Date
     tableName = "Registro_Comidas",
     foreignKeys = [
         ForeignKey(
-            entity = PerfilUsuario::class,
+            entity = Perfil::class,
             parentColumns = ["id_Perfil"],
             childColumns = ["id_Perfil"],
             onDelete = ForeignKey.CASCADE
@@ -20,11 +22,15 @@ import java.util.Date
             childColumns = ["id_Alimento"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index("id_Perfil"),
+        Index("id_Alimento")
     ]
 )
 data class RegistroComida(
     @PrimaryKey val id_Registro_Comida: Int,
-    val id_Perfil: Int,  // Cambiado de id_Usuario a id_Perfil
+    @ColumnInfo(name = "id_Perfil") val idPerfil: Int,
     val Fecha: Date,
     val Tipo_Comida: String,
     val id_Alimento: Int,
