@@ -1,11 +1,15 @@
 package com.example.proyectohealthy.screen.questionnaire
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -142,41 +146,22 @@ fun EdadSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
     val currentEdad = viewModel.currentPerfil.collectAsState().value?.Edad ?: 18
     val initialIndex = (currentEdad - 18).coerceIn(0, edades.size - 1)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
-    val coroutineScope = rememberCoroutineScope()
+    var selectedEdad by remember { mutableStateOf(currentEdad) }
 
     FullScreenSelector {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Selecciona tu edad", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
-            Box(modifier = Modifier.height(180.dp)) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    itemsIndexed(edades) { index, edad ->
-                        val alpha = if (index == listState.firstVisibleItemIndex + 1) 1f else 0.3f
-                        Text(
-                            text = edad.toString(),
-                            style = MaterialTheme.typography.headlineLarge,
-                            modifier = Modifier
-                                .alpha(alpha)
-                                .padding(vertical = 8.dp)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            Box(modifier = Modifier.height(200.dp)) {
+                NumberSelector(
+                    items = edades,
+                    listState = listState,
+                    onValueSelected = { selectedEdad = it }
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val selectedEdad = edades[listState.firstVisibleItemIndex + 1]
                     viewModel.updateEdad(selectedEdad)
                     onDismiss()
                 },
@@ -194,41 +179,23 @@ fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
     val currentAltura = viewModel.currentPerfil.collectAsState().value?.Altura?.toInt() ?: 170
     val initialIndex = (currentAltura - 140).coerceIn(0, alturas.size - 1)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
-    val coroutineScope = rememberCoroutineScope()
+    var selectedAltura by remember { mutableStateOf(currentAltura) }
 
     FullScreenSelector {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Selecciona tu altura", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
-            Box(modifier = Modifier.height(180.dp)) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    itemsIndexed(alturas) { index, altura ->
-                        val alpha = if (index == listState.firstVisibleItemIndex + 1) 1f else 0.3f
-                        Text(
-                            text = "$altura cm",
-                            style = MaterialTheme.typography.headlineLarge,
-                            modifier = Modifier
-                                .alpha(alpha)
-                                .padding(vertical = 8.dp)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            Box(modifier = Modifier.height(200.dp)) {
+                NumberSelector(
+                    items = alturas,
+                    listState = listState,
+                    onValueSelected = { selectedAltura = it },
+                    itemToString = { "$it cm" }
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val selectedAltura = alturas[listState.firstVisibleItemIndex + 1]
                     viewModel.updateAltura(selectedAltura.toFloat())
                     onDismiss()
                 },
@@ -242,83 +209,105 @@ fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
 
 @Composable
 fun PesoSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
-    val currentPerfil by viewModel.currentPerfil.collectAsState()
     val pesoEntero = (30..200).toList()
     val pesoDecimal = (0..9).toList()
-    val currentPeso = currentPerfil?.Peso_Actual ?: 70f
-    val listStateEntero = rememberLazyListState(initialFirstVisibleItemIndex = (currentPeso.toInt() - 30).coerceIn(0, pesoEntero.size - 1))
-    val listStateDecimal = rememberLazyListState(initialFirstVisibleItemIndex = ((currentPeso % 1) * 10).toInt())
-    val coroutineScope = rememberCoroutineScope()
+    val currentPeso = viewModel.currentPerfil.collectAsState().value?.Peso_Actual ?: 70f
+    val initialEnteroIndex = (currentPeso.toInt() - 30).coerceIn(0, pesoEntero.size - 1)
+    val initialDecimalIndex = ((currentPeso % 1) * 10).toInt().coerceIn(0, pesoDecimal.size - 1)
+    val listStateEntero = rememberLazyListState(initialFirstVisibleItemIndex = initialEnteroIndex)
+    val listStateDecimal = rememberLazyListState(initialFirstVisibleItemIndex = initialDecimalIndex)
+    var selectedPeso by remember { mutableStateOf(currentPeso) }
 
     FullScreenSelector {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Selecciona tu peso", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.height(180.dp)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    LazyColumn(
-                        state = listStateEntero,
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        itemsIndexed(pesoEntero) { index, peso ->
-                            val alpha = if (index == listStateEntero.firstVisibleItemIndex + 1) 1f else 0.3f
-                            Text(
-                                text = peso.toString(),
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier
-                                    .alpha(alpha)
-                                    .padding(vertical = 8.dp)
-                            )
-                        }
+            Row(modifier = Modifier.height(200.dp)) {
+                NumberSelector(
+                    items = pesoEntero,
+                    listState = listStateEntero,
+                    modifier = Modifier.weight(1f),
+                    onValueSelected = { entero ->
+                        val decimal = pesoDecimal[listStateDecimal.firstVisibleItemIndex]
+                        selectedPeso = entero + decimal / 10f
                     }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    )
-                }
-                Text(".", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.align(Alignment.CenterVertically))
-                Box(modifier = Modifier.weight(0.5f)) {
-                    LazyColumn(
-                        state = listStateDecimal,
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        itemsIndexed(pesoDecimal) { index, decimal ->
-                            val alpha = if (index == listStateDecimal.firstVisibleItemIndex + 1) 1f else 0.3f
-                            Text(
-                                text = decimal.toString(),
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier
-                                    .alpha(alpha)
-                                    .padding(vertical = 8.dp)
-                            )
-                        }
+                )
+                Text(
+                    ".",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                NumberSelector(
+                    items = pesoDecimal,
+                    listState = listStateDecimal,
+                    modifier = Modifier.weight(0.5f),
+                    onValueSelected = { decimal ->
+                        val entero = pesoEntero[listStateEntero.firstVisibleItemIndex]
+                        selectedPeso = entero + decimal / 10f
                     }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    )
-                }
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val entero = pesoEntero[listStateEntero.firstVisibleItemIndex + 1]
-                    val decimal = pesoDecimal[listStateDecimal.firstVisibleItemIndex + 1]
-                    viewModel.updatePesoActual(entero + decimal / 10f)
+                    viewModel.updatePesoActual(selectedPeso)
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Confirmar")
             }
+        }
+    }
+}
+
+@Composable
+fun NumberSelector(
+    items: List<Int>,
+    listState: LazyListState,
+    modifier: Modifier = Modifier,
+    onValueSelected: (Int) -> Unit,
+    itemToString: (Int) -> String = { it.toString() }
+) {
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 80.dp),
+            flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+        ) {
+            items(items) { item ->
+                Box(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = itemToString(item),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = if (listState.firstVisibleItemIndex == items.indexOf(item))
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                .border(1.dp, MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(4.dp))
+        )
+    }
+
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            val index = listState.firstVisibleItemIndex.coerceIn(0, items.size - 1)
+            onValueSelected(items[index])
         }
     }
 }

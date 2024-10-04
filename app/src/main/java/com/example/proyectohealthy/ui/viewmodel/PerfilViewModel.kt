@@ -32,7 +32,7 @@ class PerfilViewModel @Inject constructor(
             auth.currentUser?.let { user ->
                 try {
                     perfilRepository.getPerfilFlow(user.uid).collect { perfil ->
-                        _currentPerfil.value = perfil
+                        _currentPerfil.value = perfil ?: createDefaultPerfil(user.uid)
                     }
                 } catch (e: Exception) {
                     _error.value = "Error al cargar el perfil: ${e.message}"
@@ -40,6 +40,26 @@ class PerfilViewModel @Inject constructor(
             }
         }
     }
+
+    private fun createDefaultPerfil(uid: String): Perfil {
+        return Perfil(
+            uid_firebase = uid,
+            Nombre = "",
+            Apellido = "",
+            Genero = "",
+            Altura = 0f,
+            Edad = 0,
+            Peso_Actual = 0f,
+            Peso_Objetivo = 0f,
+            Nivel_Actividad = "",
+            Objetivo = "",
+            Como_Conseguirlo = "",
+            Entrenamiento_Fuerza = "",
+            Perfil_Imagen = "",
+            Biografia = ""
+        )
+    }
+
 
     private fun updatePerfilField(updateFunction: suspend (String) -> Unit) {
         viewModelScope.launch {
@@ -92,13 +112,11 @@ class PerfilViewModel @Inject constructor(
 
     fun createOrUpdatePerfil(perfil: Perfil) {
         viewModelScope.launch {
-            auth.currentUser?.let { user ->
-                try {
-                    perfilRepository.createOrUpdatePerfil(perfil.copy(uid_firebase = user.uid))
-                    loadCurrentPerfil()
-                } catch (e: Exception) {
-                    _error.value = "Error al crear o actualizar el perfil: ${e.message}"
-                }
+            try {
+                perfilRepository.createOrUpdatePerfil(perfil)
+                _currentPerfil.value = perfil
+            } catch (e: Exception) {
+                _error.value = "Error al crear o actualizar el perfil: ${e.message}"
             }
         }
     }

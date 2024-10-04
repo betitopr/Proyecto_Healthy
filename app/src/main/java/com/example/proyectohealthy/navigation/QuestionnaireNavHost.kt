@@ -20,8 +20,7 @@ import com.example.proyectohealthy.screen.questionnaire.PesoObjetivoScreen
 import com.example.proyectohealthy.screen.questionnaire.ProgresoScreen
 import com.example.proyectohealthy.screen.questionnaire.SummaryScreen
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
-import com.example.proyectohealthy.viewmodels.NutricionViewModel
-import com.google.firebase.auth.FirebaseAuth
+import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 
 @Composable
 fun QuestionnaireHost(

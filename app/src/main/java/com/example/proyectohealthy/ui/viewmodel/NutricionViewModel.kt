@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.viewmodels
+package com.example.proyectohealthy.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

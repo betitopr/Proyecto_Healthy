@@ -2,6 +2,7 @@ package com.example.proyectohealthy.screen.auth
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,8 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val authState by viewModel.authState.collectAsState()
@@ -37,16 +40,30 @@ fun RegisterScreen(
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             try {
                 val account = task.getResult(ApiException::class.java)
-                account?.let { viewModel.signInWithGoogle(it) }
+                account?.let {
+                    isLoading = true
+                    viewModel.signInWithGoogle(it)
+                }
             } catch (e: ApiException) {
-                // Manejar error
+                isLoading = false
+                errorMessage = "Error al iniciar sesión con Google: ${e.message}"
             }
+        } else {
+            isLoading = false
         }
     }
 
     LaunchedEffect(authState) {
-        if (authState is AuthViewModel.AuthState.Authenticated) {
-            onNavigateToHome()
+        when (authState) {
+            is AuthViewModel.AuthState.Authenticated -> {
+                isLoading = false
+                onNavigateToHome()
+            }
+            is AuthViewModel.AuthState.Error -> {
+                isLoading = false
+                errorMessage = (authState as AuthViewModel.AuthState.Error).message
+            }
+            else -> {}
         }
     }
 
@@ -60,44 +77,61 @@ fun RegisterScreen(
         TextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") }
+            label = { Text("Email") },
+            enabled = !isLoading
         )
         Spacer(modifier = Modifier.height(8.dp))
         TextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") }
+            label = { Text("Password") },
+            enabled = !isLoading
         )
         Spacer(modifier = Modifier.height(8.dp))
         TextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") }
+            label = { Text("Confirm Password") },
+            enabled = !isLoading
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = {
-            if (password == confirmPassword) {
-                viewModel.signUp(email, password)
-            } else {
-                // Mostrar error de que las contraseñas no coinciden
-            }
-        }) {
+        Button(
+            onClick = {
+                if (password == confirmPassword) {
+                    isLoading = true
+                    errorMessage = null
+                    viewModel.signUp(email, password)
+                } else {
+                    errorMessage = "Las contraseñas no coinciden"
+                }
+            },
+            enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank()
+        ) {
             Text("Register")
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = {
-            startGoogleSignIn(context, launcher)
-        }) {
+        Button(
+            onClick = {
+                isLoading = true
+                errorMessage = null
+                startGoogleSignIn(context, launcher)
+            },
+            enabled = !isLoading
+        ) {
             Text("Sign up with Google")
         }
         Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = onNavigateToLogin) {
+        TextButton(onClick = onNavigateToLogin, enabled = !isLoading) {
             Text("Already have an account? Login")
         }
 
-        if (authState is AuthViewModel.AuthState.Error) {
+        if (isLoading) {
+            CircularProgressIndicator()
+        }
+
+        errorMessage?.let {
             Text(
-                text = (authState as AuthViewModel.AuthState.Error).message,
+                text = it,
                 color = MaterialTheme.colorScheme.error
             )
         }
@@ -105,11 +139,15 @@ fun RegisterScreen(
 }
 
 private fun startGoogleSignIn(context: Context, launcher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>) {
-    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken(context.getString(R.string.default_web_client_id))
-        .requestEmail()
-        .build()
-    val googleSignInClient = GoogleSignIn.getClient(context, gso)
-    val signInIntent = googleSignInClient.signInIntent
-    launcher.launch(signInIntent)
+    try {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        val googleSignInClient = GoogleSignIn.getClient(context, gso)
+        val signInIntent = googleSignInClient.signInIntent
+        launcher.launch(signInIntent)
+    } catch (e: Exception) {
+        Log.e("RegisterScreen", "Error al iniciar el registro con Google", e)
+    }
 }

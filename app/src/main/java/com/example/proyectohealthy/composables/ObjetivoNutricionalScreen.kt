@@ -16,7 +16,7 @@ import com.patrykandpatrick.vico.compose.chart.Chart // Para el componente del g
 // ViewModel y estados
 import androidx.compose.runtime.collectAsState
 import com.example.proyectohealthy.UiState
-import com.example.proyectohealthy.viewmodels.NutricionViewModel
+import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.column.columnChart

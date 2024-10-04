@@ -1,10 +1,14 @@
 package com.example.proyectohealthy.screen.questionnaire
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +31,6 @@ fun PesoObjetivoScreen(
     val currentPesoObjetivo = currentPerfil?.Peso_Objetivo ?: 70f
     val listStateEntero = rememberLazyListState(initialFirstVisibleItemIndex = (currentPesoObjetivo.toInt() - 30).coerceIn(0, pesoEntero.size - 1))
     val listStateDecimal = rememberLazyListState(initialFirstVisibleItemIndex = ((currentPesoObjetivo % 1) * 10).toInt())
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -53,69 +56,22 @@ fun PesoObjetivoScreen(
                 style = MaterialTheme.typography.headlineSmall
             )
 
-            Row(modifier = Modifier.height(180.dp)) {
-                Box(modifier = Modifier.weight(1f)) {
-                    LazyColumn(
-                        state = listStateEntero,
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        itemsIndexed(pesoEntero) { index, peso ->
-                            val alpha = if (index == listStateEntero.firstVisibleItemIndex + 1) 1f else 0.3f
-                            Text(
-                                text = peso.toString(),
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier
-                                    .alpha(alpha)
-                                    .padding(vertical = 8.dp)
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    )
-                }
-                Text(".", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.align(Alignment.CenterVertically))
-                Box(modifier = Modifier.weight(0.5f)) {
-                    LazyColumn(
-                        state = listStateDecimal,
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        itemsIndexed(pesoDecimal) { index, decimal ->
-                            val alpha = if (index == listStateDecimal.firstVisibleItemIndex + 1) 1f else 0.3f
-                            Text(
-                                text = decimal.toString(),
-                                style = MaterialTheme.typography.headlineLarge,
-                                modifier = Modifier
-                                    .alpha(alpha)
-                                    .padding(vertical = 8.dp)
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    )
-                }
-            }
-
-            Button(
-                onClick = {
-                    val entero = pesoEntero[listStateEntero.firstVisibleItemIndex + 1]
-                    val decimal = pesoDecimal[listStateDecimal.firstVisibleItemIndex + 1]
-                    perfilViewModel.updatePesoObjetivo(entero + decimal / 10f)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Confirmar")
+            Row(modifier = Modifier.height(200.dp)) {
+                PesoSelector(
+                    items = pesoEntero,
+                    listState = listStateEntero,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    ".",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                PesoSelector(
+                    items = pesoDecimal,
+                    listState = listStateDecimal,
+                    modifier = Modifier.weight(0.5f)
+                )
             }
 
             Row(
@@ -129,6 +85,65 @@ fun PesoObjetivoScreen(
                     Text("Siguiente")
                 }
             }
+        }
+    }
+
+    LaunchedEffect(listStateEntero.firstVisibleItemIndex, listStateDecimal.firstVisibleItemIndex) {
+        val entero = pesoEntero[listStateEntero.firstVisibleItemIndex]
+        val decimal = pesoDecimal[listStateDecimal.firstVisibleItemIndex]
+        perfilViewModel.updatePesoObjetivo(entero + decimal / 10f)
+    }
+}
+
+@Composable
+fun PesoSelector(
+    items: List<Int>,
+    listState: LazyListState,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 80.dp),
+            flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+        ) {
+            items(items.size) { index ->
+                Box(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = items[index].toString(),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = if (listState.firstVisibleItemIndex == index)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+        // Overlay para resaltar la selección
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(4.dp)
+                )
+        )
+    }
+
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            listState.animateScrollToItem(listState.firstVisibleItemIndex)
         }
     }
 }

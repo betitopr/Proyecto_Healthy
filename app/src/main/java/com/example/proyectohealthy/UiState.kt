@@ -1,6 +1,6 @@
 package com.example.proyectohealthy
 
-import com.example.proyectohealthy.viewmodels.NutricionViewModel
+import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 
 
 /**

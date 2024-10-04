@@ -1,8 +1,9 @@
 package com.example.proyectohealthy.screen.questionnaire
 
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,7 +19,7 @@ import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.example.proyectohealthy.UiState
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
-import com.example.proyectohealthy.viewmodels.NutricionViewModel
+import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 
 @Composable
 fun ObjetivoNutricionalScreen(
@@ -37,70 +38,72 @@ fun ObjetivoNutricionalScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .background(Color(0xFFF0F4F8))
-    ) {
-        Text(
-            text = "Plan Nutricional",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                color = Color(0xFF2C3E50)
-            ),
-            modifier = Modifier.padding(bottom = 16.dp, top = 50.dp)
-        )
-
-        when (val state = uiState) {
-            is UiState.Loading -> CircularProgressIndicator()
-            is UiState.Success.NutritionPlanGenerated -> {
-                val planNutricional = state.data
-                DisplayNutritionPlan(planNutricional)
+    Scaffold(
+        bottomBar = {
+            BottomAppBar {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = onPreviousClick) {
+                        Text("Anterior")
+                    }
+                    Button(onClick = onFinishQuestionnaire) {
+                        Text("Finalizar")
+                    }
+                }
             }
-            is UiState.Success.TextGenerated -> {
-                Text("Texto generado: ${state.outputText}")
-            }
-            is UiState.Error -> Text("Error: ${state.errorMessage}")
-            is UiState.Initial -> Text("Esperando datos...")
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Button(onClick = onPreviousClick) {
-                Text("Anterior")
-            }
-            Button(onClick = onFinishQuestionnaire) {
-                Text("Finalizar")
+            Text(
+                text = "Plan Nutricional",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    color = Color(0xFF2C3E50)
+                ),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            when (val state = uiState) {
+                is UiState.Loading -> CircularProgressIndicator()
+                is UiState.Success.NutritionPlanGenerated -> {
+                    DisplayNutritionPlan(state.data)
+                }
+                is UiState.Success.TextGenerated -> {
+                    Text("Texto generado: ${state.outputText}")
+                }
+                is UiState.Error -> Text("Error: ${state.errorMessage}")
+                is UiState.Initial -> Text("Esperando datos...")
             }
         }
-
-
     }
 }
 
 @Composable
 fun DisplayNutritionPlan(planNutricional: NutricionViewModel.PlanNutricional) {
-    Text("Requerimiento Energético: ${planNutricional.requerimientoEnergetico} calorías")
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    MacronutrientesChart(
-        proteinas = planNutricional.proteinas,
-        carbohidratos = planNutricional.carbohidratos,
-        grasas = planNutricional.grasas
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Text("Plan Detallado:", style = MaterialTheme.typography.titleMedium)
-    Text(planNutricional.planDetallado)
+    Column {
+        Text("Requerimiento Energético: ${planNutricional.requerimientoEnergetico} calorías")
+        Spacer(modifier = Modifier.height(16.dp))
+        MacronutrientesChart(
+            proteinas = planNutricional.proteinas,
+            carbohidratos = planNutricional.carbohidratos,
+            grasas = planNutricional.grasas
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Plan Detallado:", style = MaterialTheme.typography.titleMedium)
+        Text(planNutricional.planDetallado)
+    }
 }
 
 @Composable

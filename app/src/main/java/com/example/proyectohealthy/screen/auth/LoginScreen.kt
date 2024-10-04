@@ -28,6 +28,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val authState by viewModel.authState.collectAsState()
@@ -41,19 +42,30 @@ fun LoginScreen(
             try {
                 val account = task.getResult(ApiException::class.java)
                 Log.d("LoginScreen", "Google Sign In successful, account: ${account?.email}")
-                account?.let { viewModel.signInWithGoogle(it) }
+                account?.let {
+                    isLoading = true
+                    viewModel.signInWithGoogle(it) }
             } catch (e: ApiException) {
                 Log.e("LoginScreen", "Google Sign In failed", e)
                 // Mostrar un mensaje de error al usuario
             }
         } else {
+            isLoading = false
             Log.d("LoginScreen", "Google Sign In was cancelled or failed")
         }
     }
 
     LaunchedEffect(authState) {
-        if (authState is AuthViewModel.AuthState.Authenticated) {
-            onNavigateToHome()
+        when (authState) {
+            is AuthViewModel.AuthState.Authenticated -> {
+                isLoading = false
+                onNavigateToHome()
+            }
+            is AuthViewModel.AuthState.Error -> {
+                isLoading = false
+                Log.d("LoginScreen", "Google Sign failed")
+            }
+            else -> {}
         }
     }
 
@@ -67,27 +79,43 @@ fun LoginScreen(
         TextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") }
+            label = { Text("Email") },
+            enabled = !isLoading
         )
         Spacer(modifier = Modifier.height(8.dp))
         TextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") }
+            label = { Text("Password") },
+            enabled = !isLoading
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { viewModel.signInWithEmailAndPassword(email, password) }) {
+        Button(
+            onClick = {
+                isLoading = true
+                viewModel.signInWithEmailAndPassword(email, password)
+            },
+            enabled = !isLoading
+        ) {
             Text("Login")
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = {
-            startGoogleSignIn(context, launcher)
-        }) {
+        Button(
+            onClick = {
+                isLoading = true
+                startGoogleSignIn(context, launcher)
+            },
+            enabled = !isLoading
+        ) {
             Text("Sign in with Google")
         }
         Spacer(modifier = Modifier.height(8.dp))
-        TextButton(onClick = onNavigateToRegister) {
+        TextButton(onClick = onNavigateToRegister, enabled = !isLoading) {
             Text("Don't have an account? Register")
+        }
+
+        if (isLoading) {
+            CircularProgressIndicator()
         }
 
         if (authState is AuthViewModel.AuthState.Error) {

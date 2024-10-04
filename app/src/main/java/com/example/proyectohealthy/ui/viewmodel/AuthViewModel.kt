@@ -27,7 +27,7 @@ class AuthViewModel @Inject constructor(
     val authState = _authState.asStateFlow()
 
     init {
-        // Verificar el estado de autenticación al iniciar el ViewModel
+        // Verifica el estado de autenticación al iniciar el ViewModel
         checkAuthState()
     }
 
@@ -47,6 +47,7 @@ class AuthViewModel @Inject constructor(
             try {
                 _authState.value = AuthState.Loading
                 auth.signInWithEmailAndPassword(email, password).await()
+                createOrUpdateUserProfile()
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Authentication failed")
@@ -92,10 +93,53 @@ class AuthViewModel @Inject constructor(
     }
 
     fun signOut() {
-        auth.signOut()
-        _authState.value = AuthState.NotAuthenticated
+        viewModelScope.launch {
+            try {
+                auth.signOut()
+                _authState.value = AuthState.NotAuthenticated
+                Log.d("AuthViewModel", "Sesión cerrada exitosamente")
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("Error al cerrar sesión: ${e.message}")
+                Log.e("AuthViewModel", "Error al cerrar sesión", e)
+            }
+        }
     }
 
+    private suspend fun createOrUpdateUserProfile() {
+        val user = auth.currentUser ?: run {
+            _authState.value = AuthState.Error("No authenticated user found")
+            return
+        }
+        try {
+            val existingPerfil = userRepository.getPerfil(user.uid)
+            val updatedPerfil = existingPerfil?.copy(
+                Nombre = user.displayName?.split(" ")?.firstOrNull() ?: existingPerfil.Nombre,
+                Apellido = user.displayName?.split(" ")?.lastOrNull() ?: existingPerfil.Apellido,
+                Perfil_Imagen = user.photoUrl?.toString() ?: existingPerfil.Perfil_Imagen
+            ) ?: Perfil(
+                uid_firebase = user.uid,
+                Nombre = user.displayName?.split(" ")?.firstOrNull() ?: "",
+                Apellido = user.displayName?.split(" ")?.lastOrNull() ?: "",
+                Genero = "",
+                Altura = 0f,
+                Edad = 0,
+                Peso_Actual = 0f,
+                Peso_Objetivo = 0f,
+                Nivel_Actividad = "",
+                Objetivo = "",
+                Como_Conseguirlo = "",
+                Entrenamiento_Fuerza = "",
+                Perfil_Imagen = user.photoUrl?.toString() ?: "",
+                Biografia = ""
+            )
+            userRepository.createOrUpdatePerfil(updatedPerfil)
+            Log.d("AuthViewModel", "Perfil de usuario creado o actualizado exitosamente")
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "Error al crear o actualizar el perfil de usuario", e)
+            _authState.value = AuthState.Error("Failed to create or update user profile: ${e.message}")
+        }
+    }
+/*
     private suspend fun createOrUpdateUserProfile() {
         val user = auth.currentUser ?: run {
             _authState.value = AuthState.Error("No authenticated user found")
@@ -115,7 +159,7 @@ class AuthViewModel @Inject constructor(
                 Objetivo = "",
                 Como_Conseguirlo = "",
                 Entrenamiento_Fuerza = "",
-                Perfil_Imagen = user.photoUrl?.toString(),
+                Perfil_Imagen = user.photoUrl?.toString() ?: "",
                 Biografia = ""
             )
             userRepository.createOrUpdatePerfil(perfil)
@@ -126,7 +170,7 @@ class AuthViewModel @Inject constructor(
             _authState.value = AuthState.Error("Failed to create or update user profile: ${e.message}")
         }
     }
-
+*/
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
 
     sealed class AuthState {

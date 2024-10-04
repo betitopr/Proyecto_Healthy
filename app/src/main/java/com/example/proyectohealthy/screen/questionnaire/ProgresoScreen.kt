@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.proyectohealthy.UiState
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
-import com.example.proyectohealthy.viewmodels.NutricionViewModel
+import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart

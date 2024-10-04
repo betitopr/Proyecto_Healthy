@@ -7,24 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 //import com.example.proyectohealthy.composables.AlturaScreen
 //import com.example.proyectohealthy.composables.CalcularDatosSaludScreen
@@ -38,17 +21,12 @@ import androidx.navigation.compose.rememberNavController
 //import com.example.proyectohealthy.composables.ObjetivoScreen
 //import com.example.proyectohealthy.composables.PesoObjetivoScreen
 //import com.example.proyectohealthy.composables.PesoScreen
-import com.example.proyectohealthy.data.local.AppDatabase
-import com.example.proyectohealthy.data.repository.AlimentoRepository
 import com.example.proyectohealthy.navigation.AppNavigation
 import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme
 import com.example.proyectohealthy.ui.viewmodel.AuthViewModel
-import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
-import com.example.proyectohealthy.viewmodels.NutricionViewModel
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ktx.initialize
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 /*class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()

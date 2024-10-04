@@ -27,7 +27,7 @@ class RegistroComidaViewModel(private val repository: RegistroComidaRepository) 
         viewModelScope.launch {
             repository.getAllRegistrosComidas()
                 .catch { e ->
-                    // Manejar errores aquí
+                    // Manejar errores
                 }
                 .collect {
                     _registrosComidas.value = it

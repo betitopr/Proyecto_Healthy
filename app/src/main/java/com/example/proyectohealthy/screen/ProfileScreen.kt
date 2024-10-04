@@ -14,21 +14,33 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.proyectohealthy.R
 import com.example.proyectohealthy.components.CustomBottomBar
 import com.example.proyectohealthy.components.CustomTopBar
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.data.local.entity.Perfil
+import com.example.proyectohealthy.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController, viewModel: PerfilViewModel) {
-    val perfilState by viewModel.currentPerfil.collectAsState()
-    val errorState by viewModel.error.collectAsState()
+fun ProfileScreen(
+    navController: NavController,
+    perfilViewModel: PerfilViewModel,
+    authViewModel: AuthViewModel
+) {
+    val perfilState by perfilViewModel.currentPerfil.collectAsState()
+    val errorState by perfilViewModel.error.collectAsState()
 
     Scaffold(
         topBar = {
-            CustomTopBar(navController = navController, title = "Perfil")
+            CustomTopBar(
+                navController = navController,
+                title = "Perfil",
+                userPhotoUrl = perfilState?.Perfil_Imagen
+            )
+
         },
         bottomBar = {
             CustomBottomBar(navController = navController)
@@ -43,7 +55,7 @@ fun ProfileScreen(navController: NavController, viewModel: PerfilViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             perfilState?.let { perfil ->
-                ProfileContent(perfil, viewModel)
+                ProfileContent(perfil, perfilViewModel, authViewModel, navController)
             } ?: run {
                 CircularProgressIndicator()
             }
@@ -56,29 +68,35 @@ fun ProfileScreen(navController: NavController, viewModel: PerfilViewModel) {
 }
 
 @Composable
-fun ProfileContent(perfil: Perfil, viewModel: PerfilViewModel) {
+fun ProfileContent(
+    perfil: Perfil,
+    viewModel: PerfilViewModel,
+    authViewModel: AuthViewModel,
+    navController: NavController
+) {
     Surface(
         modifier = Modifier
             .size(120.dp)
             .clip(CircleShape),
         color = MaterialTheme.colorScheme.primary
     ) {
-        perfil.Perfil_Imagen?.let { imageUrl ->
-            // Aquí deberías usar una librería de carga de imágenes como Coil o Glide
-            // Por ahora, usamos una imagen de placeholder
-            Image(
-                painter = painterResource(id = R.drawable.gojowin),
-                contentDescription = "Foto de perfil",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } ?: run {
-            // Placeholder si no hay imagen de perfil
-            Icon(
-                painter = painterResource(id = R.drawable.gojowin),
-                contentDescription = "Icono de perfil",
-                modifier = Modifier.fillMaxSize().padding(24.dp)
-            )
+        when {
+            perfil.Perfil_Imagen != null && perfil.Perfil_Imagen.startsWith("http") -> {
+                AsyncImage(
+                    model = perfil.Perfil_Imagen,
+                    contentDescription = "Foto de perfil",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            else -> {
+                Image(
+                    painter = painterResource(id = R.drawable.gojowin),
+                    contentDescription = "Icono de perfil predeterminado",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
         }
     }
     Spacer(modifier = Modifier.height(16.dp))
@@ -90,12 +108,22 @@ fun ProfileContent(perfil: Perfil, viewModel: PerfilViewModel) {
     ProfileInfoCard(perfil)
     Spacer(modifier = Modifier.height(24.dp))
     Button(onClick = {
-        // Implementar lógica para editar perfil
+
     }) {
         Text("Editar Perfil")
     }
-}
+    Spacer(modifier = Modifier.height(16.dp))
 
+
+    Button(
+        onClick = {
+            authViewModel.signOut()
+        },
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+    ) {
+        Text("Cerrar Sesión")
+    }
+}
 @Composable
 fun ProfileInfoCard(perfil: Perfil) {
     Card(

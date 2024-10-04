@@ -22,7 +22,7 @@ import kotlinx.coroutines.delay
 fun SplashScreen(onSplashFinished: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Image(
-            painter = painterResource(id = R.drawable.gojowin),
+            painter = painterResource(id = R.drawable.food_image),
             contentDescription = "App Logo",
             modifier = Modifier
                 .size(200.dp)
