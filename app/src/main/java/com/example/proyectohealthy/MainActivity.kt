@@ -14,27 +14,6 @@ import com.google.firebase.database.FirebaseDatabase
 import dagger.hilt.android.AndroidEntryPoint
 
 
-/*
-
-@Preview(showSystemUi = true)
-@Composable
-fun appPreview(){
-    val navController = rememberNavController()
-    val userSelectionsViewModel = remember { UserSelectionsViewModel() }
-    val nutricionViewModel = remember { NutricionViewModel() }
-
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        AppNavGraph(
-            navController = navController,
-            userSelectionsViewModel = userSelectionsViewModel,
-            nutricionViewModel = nutricionViewModel,
-            modifier = Modifier.padding(innerPadding)
-        )
-    }
-}*/
-
-
-
 
 
 @AndroidEntryPoint
