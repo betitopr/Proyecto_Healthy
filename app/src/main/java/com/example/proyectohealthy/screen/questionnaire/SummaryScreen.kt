@@ -44,15 +44,15 @@ fun SummaryScreen(
             horizontalAlignment = Alignment.Start
         ) {
             currentPerfil?.let { perfil ->
-                InfoRow("Género", perfil.Genero)
-                InfoRow("Edad", "${perfil.Edad} años")
-                InfoRow("Altura", "${perfil.Altura.toInt()} cm")
-                InfoRow("Peso Actual", "${perfil.Peso_Actual.toInt()} kg")
-                InfoRow("Peso Objetivo", "${perfil.Peso_Objetivo.toInt()} kg")
-                InfoRow("Objetivo", perfil.Objetivo)
-                InfoRow("Nivel de Actividad", perfil.Nivel_Actividad)
-                InfoRow("Entrenamiento de Fuerza", perfil.Entrenamiento_Fuerza)
-                InfoRow("Cómo Conseguirlo", perfil.Como_Conseguirlo)
+                InfoRow("Género", perfil.genero)
+                InfoRow("Edad", "${perfil.edad} años")
+                InfoRow("Altura", "${perfil.altura.toInt()} cm")
+                InfoRow("Peso Actual", "${perfil.pesoActual.toInt()} kg")
+                InfoRow("Peso Objetivo", "${perfil.pesoObjetivo.toInt()} kg")
+                InfoRow("Objetivo", perfil.objetivo)
+                InfoRow("Nivel de Actividad", perfil.nivelActividad)
+                InfoRow("Entrenamiento de Fuerza", perfil.entrenamientoFuerza)
+                InfoRow("Cómo Conseguirlo", perfil.comoConseguirlo)
             } ?: Text("No se ha podido cargar la información del perfil.", color = MaterialTheme.colorScheme.error)
 
             Spacer(modifier = Modifier.weight(1f))

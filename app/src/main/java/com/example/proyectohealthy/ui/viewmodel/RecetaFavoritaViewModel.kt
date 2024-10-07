@@ -4,77 +4,77 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.RecetaFavorita
 import com.example.proyectohealthy.data.repository.RecetaFavoritaRepository
+import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class RecetaFavoritaViewModel(private val repository: RecetaFavoritaRepository) : ViewModel() {
-
+@HiltViewModel
+class RecetaFavoritaViewModel @Inject constructor(
+    private val recetaFavoritaRepository: RecetaFavoritaRepository,
+    private val auth: FirebaseAuth
+) : ViewModel() {
     private val _recetasFavoritas = MutableStateFlow<List<RecetaFavorita>>(emptyList())
-    val recetasFavoritas: StateFlow<List<RecetaFavorita>> = _recetasFavoritas
+    val recetasFavoritas: StateFlow<List<RecetaFavorita>> = _recetasFavoritas.asStateFlow()
 
-    private val _currentReceta = MutableStateFlow<RecetaFavorita?>(null)
-    val currentReceta: StateFlow<RecetaFavorita?> = _currentReceta
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        getAllRecetasFavoritas()
-    }
-
-    private fun getAllRecetasFavoritas() {
         viewModelScope.launch {
-            repository.getAllRecetasFavoritas()
-                .catch { e ->
-                    // Manejar errores aquí
-                }
-                .collect {
+            auth.currentUser?.let { user ->
+                recetaFavoritaRepository.getRecetasFavoritasFlow(user.uid).collect {
                     _recetasFavoritas.value = it
                 }
+            }
         }
     }
 
-    fun getRecetaFavoritaById(id: Int) {
+    fun createOrUpdateRecetaFavorita(nombreReceta: String, ingredientes: String, instrucciones: String) {
         viewModelScope.launch {
-            _currentReceta.value = repository.getRecetaFavoritaById(id)
+            try {
+                auth.currentUser?.let { user ->
+                    val receta = RecetaFavorita(
+                        idPerfil = user.uid,
+                        nombreReceta = nombreReceta,
+                        ingredientes = ingredientes,
+                        instrucciones = instrucciones
+                    )
+                    recetaFavoritaRepository.createOrUpdateRecetaFavorita(receta)
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al guardar la receta favorita: ${e.message}"
+            }
         }
     }
 
-    fun getRecetasFavoritasByUserId(userId: Int) {
+    fun deleteRecetaFavorita(idReceta: String) {
         viewModelScope.launch {
-            repository.getRecetasFavoritasByUserId(userId)
-                .collect {
+            try {
+                auth.currentUser?.let { user ->
+                    recetaFavoritaRepository.deleteRecetaFavorita(user.uid, idReceta)
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al eliminar la receta favorita: ${e.message}"
+            }
+        }
+    }
+
+    fun searchRecetasFavoritas(query: String) {
+        viewModelScope.launch {
+            auth.currentUser?.let { user ->
+                recetaFavoritaRepository.searchRecetasFavoritas(user.uid, query).collect {
                     _recetasFavoritas.value = it
                 }
+            }
         }
     }
 
-    fun insertRecetaFavorita(recetaFavorita: RecetaFavorita) {
-        viewModelScope.launch {
-            repository.insertRecetaFavorita(recetaFavorita)
-            getAllRecetasFavoritas()
-        }
-    }
-
-    fun updateRecetaFavorita(recetaFavorita: RecetaFavorita) {
-        viewModelScope.launch {
-            repository.updateRecetaFavorita(recetaFavorita)
-            getAllRecetasFavoritas()
-        }
-    }
-
-    fun deleteRecetaFavorita(recetaFavorita: RecetaFavorita) {
-        viewModelScope.launch {
-            repository.deleteRecetaFavorita(recetaFavorita)
-            getAllRecetasFavoritas()
-        }
-    }
-
-    fun searchRecetasFavoritasByNombre(nombre: String) {
-        viewModelScope.launch {
-            repository.searchRecetasFavoritasByNombre(nombre)
-                .collect {
-                    _recetasFavoritas.value = it
-                }
-        }
+    fun clearError() {
+        _error.value = null
     }
 }

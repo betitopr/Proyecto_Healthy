@@ -20,7 +20,7 @@ data class BottomNavItem(val route: String, val title: String, val icon: ImageVe
 @Composable
 fun CustomBottomBar(navController: NavController) {
     val items = listOf(
-        BottomNavItem("home", "Plan", Icons.Filled.List),
+        BottomNavItem("home", "Plan", Icons.Filled.Home),
         BottomNavItem("alimentos", "Base Datos", Icons.Filled.Search),
         BottomNavItem("recetas", "Recetas", Icons.Filled.AccountBox),
         BottomNavItem("teams", "Teams", Icons.Filled.Person),

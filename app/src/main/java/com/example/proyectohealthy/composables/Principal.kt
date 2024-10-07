@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.composables
+/*package com.example.proyectohealthy.composables
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -224,3 +224,4 @@ fun MainScreen(navController: NavHostController) {
         }
     }
 }
+*/

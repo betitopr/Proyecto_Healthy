@@ -17,10 +17,10 @@ fun ObjetivoScreen(
     onPreviousClick: () -> Unit
 ) {
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
-    var selectedObjetivo by remember { mutableStateOf(currentPerfil?.Objetivo ?: "") }
+    var selectedObjetivo by remember { mutableStateOf(currentPerfil?.objetivo ?: "") }
 
-    LaunchedEffect(currentPerfil?.Objetivo) {
-        selectedObjetivo = currentPerfil?.Objetivo ?: ""
+    LaunchedEffect(currentPerfil?.objetivo) {
+        selectedObjetivo = currentPerfil?.objetivo ?: ""
     }
 
     Scaffold(

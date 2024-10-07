@@ -18,6 +18,7 @@ import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.example.proyectohealthy.UiState
+import com.example.proyectohealthy.ui.viewmodel.NutricionUiState
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 
@@ -32,10 +33,8 @@ fun ObjetivoNutricionalScreen(
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
     val uiState by nutricionViewModel.uiState.collectAsState()
 
-    LaunchedEffect(currentPerfil) {
-        currentPerfil?.let { perfil ->
-            nutricionViewModel.obtenerPlanNutricional(perfil)
-        }
+    LaunchedEffect(key1 = currentPerfil) {
+        nutricionViewModel.obtenerPlanNutricional()
     }
 
     Scaffold(
@@ -76,15 +75,27 @@ fun ObjetivoNutricionalScreen(
             )
 
             when (val state = uiState) {
-                is UiState.Loading -> CircularProgressIndicator()
-                is UiState.Success.NutritionPlanGenerated -> {
-                    DisplayNutritionPlan(state.data)
+                is NutricionUiState.Loading -> CircularProgressIndicator()
+                is NutricionUiState.Success -> {
+                    val planNutricional = state.planNutricional
+                    currentPerfil?.let { perfil ->
+                        WeightProgressChart(
+                            currentWeight = perfil.pesoActual,
+                            targetWeight = perfil.pesoObjetivo,
+                            tiempoEstimado = planNutricional.tiempoEstimado
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text("IMC: ${planNutricional.imc}")
+                        Text("TMB: ${planNutricional.tmb} calorías")
+                        Text("Tiempo estimado: ${planNutricional.tiempoEstimado} días")
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
-                is UiState.Success.TextGenerated -> {
-                    Text("Texto generado: ${state.outputText}")
-                }
-                is UiState.Error -> Text("Error: ${state.errorMessage}")
-                is UiState.Initial -> Text("Esperando datos...")
+                is NutricionUiState.Error -> Text("Error: ${state.message}")
+                NutricionUiState.Initial -> Text("Esperando datos...")
             }
         }
     }

@@ -23,6 +23,9 @@ class PerfilViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
+    private val _isPerfilCompleto = MutableStateFlow<Boolean>(false)
+    val isPerfilCompleto = _isPerfilCompleto.asStateFlow()
+
     init {
         loadCurrentPerfil()
     }
@@ -30,48 +33,37 @@ class PerfilViewModel @Inject constructor(
     private fun loadCurrentPerfil() {
         viewModelScope.launch {
             auth.currentUser?.let { user ->
-                try {
-                    perfilRepository.getPerfilFlow(user.uid).collect { perfil ->
-                        _currentPerfil.value = perfil ?: createDefaultPerfil(user.uid)
-                    }
-                } catch (e: Exception) {
-                    _error.value = "Error al cargar el perfil: ${e.message}"
+                perfilRepository.getPerfilFlow(user.uid).collect { perfil ->
+                    _currentPerfil.value = perfil ?: createDefaultPerfil(user.uid)
+                    checkPerfilCompleto()
                 }
             }
+        }
+    }
+
+    private fun checkPerfilCompleto() {
+        _currentPerfil.value?.let { perfil ->
+            _isPerfilCompleto.value = perfil.altura > 0f && perfil.pesoActual > 0f && perfil.edad > 0
         }
     }
 
     private fun createDefaultPerfil(uid: String): Perfil {
         return Perfil(
-            uid_firebase = uid,
-            Nombre = "",
-            Apellido = "",
-            Genero = "",
-            Altura = 0f,
-            Edad = 0,
-            Peso_Actual = 0f,
-            Peso_Objetivo = 0f,
-            Nivel_Actividad = "",
-            Objetivo = "",
-            Como_Conseguirlo = "",
-            Entrenamiento_Fuerza = "",
-            Perfil_Imagen = "",
-            Biografia = ""
+            uid = uid,
+            nombre = "",
+            apellido = "",
+            genero = "",
+            altura = 0f,
+            edad = 0,
+            pesoActual = 0f,
+            pesoObjetivo = 0f,
+            nivelActividad = "",
+            objetivo = "",
+            comoConseguirlo = "",
+            entrenamientoFuerza = "",
+            perfilImagen = "",
+            biografia = ""
         )
-    }
-
-
-    private fun updatePerfilField(updateFunction: suspend (String) -> Unit) {
-        viewModelScope.launch {
-            auth.currentUser?.let { user ->
-                try {
-                    updateFunction(user.uid)
-                    loadCurrentPerfil() // Recargar el perfil después de la actualización
-                } catch (e: Exception) {
-                    _error.value = "Error al actualizar el perfil: ${e.message}"
-                }
-            }
-        }
     }
 
     fun updateObjetivo(objetivo: String) = updatePerfilField { uid ->
@@ -108,6 +100,35 @@ class PerfilViewModel @Inject constructor(
 
     fun updateComoConseguirlo(comoConseguirlo: String) = updatePerfilField { uid ->
         perfilRepository.updateComoConseguirlo(uid, comoConseguirlo)
+    }
+
+    fun updatePremium(premium: Boolean) = updatePerfilField { uid ->
+        perfilRepository.updatePremium(uid, premium)
+    }
+
+    fun addAlimentoFavorito(alimentoId: String) = updatePerfilField { uid ->
+        perfilRepository.addAlimentoFavorito(uid, alimentoId)
+    }
+
+    fun removeAlimentoFavorito(alimentoId: String) = updatePerfilField { uid ->
+        perfilRepository.removeAlimentoFavorito(uid, alimentoId)
+    }
+
+    fun addAlimentoReciente(alimentoId: String) = updatePerfilField { uid ->
+        perfilRepository.addAlimentoReciente(uid, alimentoId)
+    }
+
+    private fun updatePerfilField(updateFunction: suspend (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                auth.currentUser?.uid?.let { uid ->
+                    updateFunction(uid)
+                    loadCurrentPerfil() // Recargar el perfil después de la actualización
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar el perfil: ${e.message}"
+            }
+        }
     }
 
     fun createOrUpdatePerfil(perfil: Perfil) {

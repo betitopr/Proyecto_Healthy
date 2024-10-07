@@ -16,7 +16,7 @@ fun NivelActividadScreen(
     onPreviousClick: () -> Unit
 ) {
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
-    var selectedNivelActividad by remember { mutableStateOf(currentPerfil?.Nivel_Actividad ?: "") }
+    var selectedNivelActividad by remember { mutableStateOf(currentPerfil?.nivelActividad ?: "") }
 
     Scaffold(
         topBar = {

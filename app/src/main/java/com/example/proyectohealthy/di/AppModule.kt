@@ -1,14 +1,13 @@
 package com.example.proyectohealthy.di
 
-import android.content.Context
-import com.example.proyectohealthy.data.local.AppDatabase
-import com.example.proyectohealthy.data.local.dao.*
-import com.example.proyectohealthy.data.repository.*
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
+import com.example.proyectohealthy.data.repository.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -16,61 +15,53 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    // Firebase providers
+    @Provides
+    @Singleton
+    fun provideFirebaseDatabase(): FirebaseDatabase = Firebase.database
+
     @Provides
     @Singleton
     fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
 
+    // Repository providers
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.getDatabase(context)
-    }
+    fun providePerfilRepository(database: FirebaseDatabase): PerfilRepository =
+        PerfilRepository(database)
 
     @Provides
     @Singleton
-    fun providePerfilDao(database: AppDatabase): PerfilDao = database.perfilDao()
+    fun provideAlimentoRepository(database: FirebaseDatabase): AlimentoRepository =
+        AlimentoRepository(database)
 
     @Provides
     @Singleton
-    fun provideAlimentoDao(database: AppDatabase): AlimentoDao = database.alimentoDao()
+    fun provideMisAlimentosRepository(database: FirebaseDatabase): MisAlimentosRepository =
+        MisAlimentosRepository(database)
 
     @Provides
     @Singleton
-    fun providePlanNutricionalDao(database: AppDatabase): PlanNutricionalDao = database.planNutricionalDao()
+    fun providePlanNutricionalRepository(database: FirebaseDatabase): PlanNutricionalRepository =
+        PlanNutricionalRepository(database)
 
     @Provides
     @Singleton
-    fun provideEjercicioDao(database: AppDatabase): EjercicioDao = database.ejercicioDao()
+    fun provideEjercicioRepository(database: FirebaseDatabase): EjercicioRepository =
+        EjercicioRepository(database)
 
     @Provides
     @Singleton
-    fun provideRecetaFavoritaDao(database: AppDatabase): RecetaFavoritaDao = database.recetaFavoritaDao()
+    fun provideRecetaFavoritaRepository(database: FirebaseDatabase): RecetaFavoritaRepository =
+        RecetaFavoritaRepository(database)
 
     @Provides
     @Singleton
-    fun provideRegistroComidaDao(database: AppDatabase): RegistroComidaDao = database.registroComidaDao()
+    fun provideRegistroComidaRepository(database: FirebaseDatabase): RegistroComidaRepository =
+        RegistroComidaRepository(database)
 
     @Provides
     @Singleton
-    fun provideUserRepository(perfilDao: PerfilDao): PerfilRepository = PerfilRepository(perfilDao)
-
-    @Provides
-    @Singleton
-    fun provideAlimentoRepository(alimentoDao: AlimentoDao): AlimentoRepository = AlimentoRepository(alimentoDao)
-
-    @Provides
-    @Singleton
-    fun providePlanNutricionalRepository(planNutricionalDao: PlanNutricionalDao): PlanNutricionalRepository = PlanNutricionalRepository(planNutricionalDao)
-
-    @Provides
-    @Singleton
-    fun provideEjercicioRepository(ejercicioDao: EjercicioDao): EjercicioRepository = EjercicioRepository(ejercicioDao)
-
-    @Provides
-    @Singleton
-    fun provideRecetaFavoritaRepository(recetaFavoritaDao: RecetaFavoritaDao): RecetaFavoritaRepository = RecetaFavoritaRepository(recetaFavoritaDao)
-
-    @Provides
-    @Singleton
-    fun provideRegistroComidaRepository(registroComidaDao: RegistroComidaDao): RegistroComidaRepository = RegistroComidaRepository(registroComidaDao)
+    fun provideConsumoAguaRepository(database: FirebaseDatabase): ConsumoAguaRepository =
+        ConsumoAguaRepository(database)
 }

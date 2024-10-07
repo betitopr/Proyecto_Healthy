@@ -1,25 +1,75 @@
 package com.example.proyectohealthy.data.repository
 
-import com.example.proyectohealthy.data.local.dao.EjercicioDao
 import com.example.proyectohealthy.data.local.entity.Ejercicio
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
+import javax.inject.Inject
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 
-class EjercicioRepository(private val ejercicioDao: EjercicioDao) {
-    fun getAllEjercicios(): Flow<List<Ejercicio>> = ejercicioDao.getAllEjercicios()
+class EjercicioRepository @Inject constructor(
+    private val database: FirebaseDatabase
+) {
+    private val ejerciciosRef = database.getReference("ejercicios")
 
-    suspend fun getEjercicioById(id: Int): Ejercicio? = ejercicioDao.getEjercicioById(id)
+    suspend fun createOrUpdateEjercicio(ejercicio: Ejercicio) {
+        val key = ejercicio.id.ifEmpty { ejerciciosRef.push().key ?: return }
+        ejerciciosRef.child(ejercicio.idPerfil).child(key).setValue(ejercicio).await()
+    }
 
-    suspend fun insertEjercicio(ejercicio: Ejercicio) = ejercicioDao.insertEjercicio(ejercicio)
+    fun getEjerciciosFlow(idPerfil: String): Flow<List<Ejercicio>> = callbackFlow {
+        val listener = ejerciciosRef.child(idPerfil).addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ejercicios = snapshot.children.mapNotNull { it.getValue(Ejercicio::class.java) }
+                trySend(ejercicios)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { ejerciciosRef.child(idPerfil).removeEventListener(listener) }
+    }
 
-    suspend fun updateEjercicio(ejercicio: Ejercicio) = ejercicioDao.updateEjercicio(ejercicio)
+    fun getEjerciciosPorFecha(idPerfil: String, fecha: Date): Flow<List<Ejercicio>> = callbackFlow {
+        val startOfDay = fecha.time
+        val endOfDay = fecha.time + 24 * 60 * 60 * 1000 // Añade un día en milisegundos
+        val query = ejerciciosRef.child(idPerfil)
+            .orderByChild("fechaCreacion")
+            .startAt(startOfDay.toDouble())
+            .endAt(endOfDay.toDouble())
 
-    suspend fun deleteEjercicio(ejercicio: Ejercicio) = ejercicioDao.deleteEjercicio(ejercicio)
+        val listener = query.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ejercicios = snapshot.children.mapNotNull { it.getValue(Ejercicio::class.java) }
+                trySend(ejercicios)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { query.removeEventListener(listener) }
+    }
 
-    fun getEjerciciosByTipo(tipo: String): Flow<List<Ejercicio>> = ejercicioDao.getEjerciciosByTipo(tipo)
+    suspend fun deleteEjercicio(idPerfil: String, idEjercicio: String) {
+        ejerciciosRef.child(idPerfil).child(idEjercicio).removeValue().await()
+    }
 
-    fun getEjerciciosByFecha(fecha: Date): Flow<List<Ejercicio>> = ejercicioDao.getEjerciciosByFecha(fecha)
-
-    fun getEjerciciosByMinCalorias(minCalorias: Int): Flow<List<Ejercicio>> =
-        ejercicioDao.getEjerciciosByMinCalorias(minCalorias)
+    fun getEjerciciosPorTipo(idPerfil: String, tipoActividad: String): Flow<List<Ejercicio>> = callbackFlow {
+        val query = ejerciciosRef.child(idPerfil).orderByChild("tipoActividad").equalTo(tipoActividad)
+        val listener = query.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val ejercicios = snapshot.children.mapNotNull { it.getValue(Ejercicio::class.java) }
+                trySend(ejercicios)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { query.removeEventListener(listener) }
+    }
 }

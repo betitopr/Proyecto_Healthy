@@ -1,89 +1,91 @@
 package com.example.proyectohealthy.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.repository.AlimentoRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Date
+import javax.inject.Inject
 
-class AlimentosViewModel(private val repository: AlimentoRepository) : ViewModel() {
-
+@HiltViewModel
+class AlimentoViewModel @Inject constructor(
+    private val alimentoRepository: AlimentoRepository
+) : ViewModel() {
     private val _alimentos = MutableStateFlow<List<Alimento>>(emptyList())
-    val alimentos: StateFlow<List<Alimento>> = _alimentos
+    val alimentos: StateFlow<List<Alimento>> = _alimentos.asStateFlow()
+
+    private val _currentAlimento = MutableStateFlow<Alimento?>(null)
+    val currentAlimento: StateFlow<Alimento?> = _currentAlimento.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        getAllAlimentos()
-    }
-
-    class Factory(private val repository: AlimentoRepository) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(AlimentosViewModel::class.java)) {
-                return AlimentosViewModel(repository) as T
+        viewModelScope.launch {
+            alimentoRepository.getAllAlimentosFlow().collect {
+                _alimentos.value = it
             }
-            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 
-    private fun getAllAlimentos() {
+    fun createOrUpdateAlimento(alimento: Alimento) {
         viewModelScope.launch {
-            repository.getAllAlimentos()
-                .catch { e ->
-                    // Manejar errores aquí
-                }
-                .collect {
-                    _alimentos.value = it
-                }
+            try {
+                alimentoRepository.createOrUpdateAlimento(alimento)
+            } catch (e: Exception) {
+                _error.value = "Error al crear o actualizar el alimento: ${e.message}"
+            }
         }
     }
 
-    fun insertAlimento(alimento: Alimento) {
+    fun getAlimento(id: String) {
         viewModelScope.launch {
-            repository.insertAlimento(alimento)
+            alimentoRepository.getAlimentoFlow(id).collect {
+                _currentAlimento.value = it
+            }
         }
     }
 
-    fun updateAlimento(alimento: Alimento) {
+    fun deleteAlimento(id: String) {
         viewModelScope.launch {
-            repository.updateAlimento(alimento)
-        }
-    }
-
-    fun deleteAlimento(alimento: Alimento) {
-        viewModelScope.launch {
-            repository.deleteAlimento(alimento)
+            try {
+                alimentoRepository.deleteAlimento(id)
+            } catch (e: Exception) {
+                _error.value = "Error al eliminar el alimento: ${e.message}"
+            }
         }
     }
 
     fun searchAlimentosByNombre(nombre: String) {
         viewModelScope.launch {
-            repository.searchAlimentosByNombre(nombre)
-                .collect {
-                    _alimentos.value = it
-                }
+            alimentoRepository.searchAlimentosByNombre(nombre).collect {
+                _alimentos.value = it
+            }
         }
     }
 
-    fun getAlimentosByClasificacion(clasificacion: String) {
+    fun getAlimentosByCategoria(categoria: String) {
         viewModelScope.launch {
-            repository.getAlimentosByClasificacion(clasificacion)
-                .collect {
-                    _alimentos.value = it
-                }
+            alimentoRepository.getAlimentosByCategoria(categoria).collect {
+                _alimentos.value = it
+            }
         }
     }
 
     fun getAlimentosByDateRange(startDate: Date, endDate: Date) {
         viewModelScope.launch {
-            repository.getAlimentosByDateRange(startDate, endDate)
-                .collect {
-                    _alimentos.value = it
-                }
+            alimentoRepository.getAlimentosByDateRange(startDate, endDate).collect {
+                _alimentos.value = it
+            }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }

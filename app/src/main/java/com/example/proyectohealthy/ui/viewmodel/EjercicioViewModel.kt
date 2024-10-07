@@ -5,87 +5,88 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Ejercicio
 import com.example.proyectohealthy.data.repository.EjercicioRepository
+import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.util.Date
+import javax.inject.Inject
 
-class EjercicioViewModel(private val repository: EjercicioRepository) : ViewModel() {
-
+@HiltViewModel
+class EjercicioViewModel @Inject constructor(
+    private val ejercicioRepository: EjercicioRepository,
+    private val auth: FirebaseAuth
+) : ViewModel() {
     private val _ejercicios = MutableStateFlow<List<Ejercicio>>(emptyList())
-    val ejercicios: StateFlow<List<Ejercicio>> = _ejercicios
+    val ejercicios: StateFlow<List<Ejercicio>> = _ejercicios.asStateFlow()
 
-    private val _currentEjercicio = MutableStateFlow<Ejercicio?>(null)
-    val currentEjercicio: StateFlow<Ejercicio?> = _currentEjercicio
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        getAllEjercicios()
-    }
-
-    private fun getAllEjercicios() {
         viewModelScope.launch {
-            repository.getAllEjercicios()
-                .catch { e ->
-                    // Manejar errores aquí
-                }
-                .collect {
+            auth.currentUser?.let { user ->
+                ejercicioRepository.getEjerciciosFlow(user.uid).collect {
                     _ejercicios.value = it
                 }
+            }
         }
     }
 
-    fun getEjercicioById(id: Int) {
+    fun createOrUpdateEjercicio(tipoActividad: String, caloriasBurnedPerMinute: Int) {
         viewModelScope.launch {
-            _currentEjercicio.value = repository.getEjercicioById(id)
+            try {
+                auth.currentUser?.let { user ->
+                    val ejercicio = Ejercicio(
+                        idPerfil = user.uid,
+                        fechaCreacion = Date(),
+                        tipoActividad = tipoActividad,
+                        caloriasBurnedPerMinute = caloriasBurnedPerMinute
+                    )
+                    ejercicioRepository.createOrUpdateEjercicio(ejercicio)
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al registrar el ejercicio: ${e.message}"
+            }
         }
     }
 
-    fun insertEjercicio(ejercicio: Ejercicio) {
+    fun getEjerciciosPorFecha(fecha: Date) {
         viewModelScope.launch {
-            repository.insertEjercicio(ejercicio)
-            getAllEjercicios()
-        }
-    }
-
-    fun updateEjercicio(ejercicio: Ejercicio) {
-        viewModelScope.launch {
-            repository.updateEjercicio(ejercicio)
-            getAllEjercicios()
-        }
-    }
-
-    fun deleteEjercicio(ejercicio: Ejercicio) {
-        viewModelScope.launch {
-            repository.deleteEjercicio(ejercicio)
-            getAllEjercicios()
-        }
-    }
-
-    fun getEjerciciosByTipo(tipo: String) {
-        viewModelScope.launch {
-            repository.getEjerciciosByTipo(tipo)
-                .collect {
+            auth.currentUser?.let { user ->
+                ejercicioRepository.getEjerciciosPorFecha(user.uid, fecha).collect {
                     _ejercicios.value = it
                 }
+            }
         }
     }
 
-    fun getEjerciciosByFecha(fecha: Date) {
+    fun deleteEjercicio(idEjercicio: String) {
         viewModelScope.launch {
-            repository.getEjerciciosByFecha(fecha)
-                .collect {
-                    _ejercicios.value = it
+            try {
+                auth.currentUser?.let { user ->
+                    ejercicioRepository.deleteEjercicio(user.uid, idEjercicio)
                 }
+            } catch (e: Exception) {
+                _error.value = "Error al eliminar el ejercicio: ${e.message}"
+            }
         }
     }
 
-    fun getEjerciciosByMinCalorias(minCalorias: Int) {
+    fun getEjerciciosPorTipo(tipoActividad: String) {
         viewModelScope.launch {
-            repository.getEjerciciosByMinCalorias(minCalorias)
-                .collect {
+            auth.currentUser?.let { user ->
+                ejercicioRepository.getEjerciciosPorTipo(user.uid, tipoActividad).collect {
                     _ejercicios.value = it
                 }
+            }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }

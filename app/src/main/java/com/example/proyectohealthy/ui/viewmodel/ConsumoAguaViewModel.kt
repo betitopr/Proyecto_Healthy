@@ -6,92 +6,77 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.ConsumoAgua
 import com.example.proyectohealthy.data.repository.ConsumoAguaRepository
+import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.util.Date
+import javax.inject.Inject
 
-class ConsumoAguaViewModel(private val repository: ConsumoAguaRepository) : ViewModel() {
-
+@HiltViewModel
+class ConsumoAguaViewModel @Inject constructor(
+    private val consumoAguaRepository: ConsumoAguaRepository,
+    private val auth: FirebaseAuth
+) : ViewModel() {
     private val _consumosAgua = MutableStateFlow<List<ConsumoAgua>>(emptyList())
-    val consumosAgua: StateFlow<List<ConsumoAgua>> = _consumosAgua
+    val consumosAgua: StateFlow<List<ConsumoAgua>> = _consumosAgua.asStateFlow()
 
-    private val _currentConsumo = MutableStateFlow<ConsumoAgua?>(null)
-    val currentConsumo: StateFlow<ConsumoAgua?> = _currentConsumo
-
-    private val _totalConsumoHoy = MutableStateFlow<Float>(0f)
-    val totalConsumoHoy: StateFlow<Float> = _totalConsumoHoy
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        getAllConsumosAgua()
-    }
-
-    private fun getAllConsumosAgua() {
         viewModelScope.launch {
-            repository.getAllConsumosAgua()
-                .catch { e ->
-                    // Manejar errores aquí
-                }
-                .collect {
+            auth.currentUser?.let { user ->
+                consumoAguaRepository.getConsumoAguaFlow(user.uid).collect {
                     _consumosAgua.value = it
                 }
+            }
         }
     }
 
-    fun getConsumoAguaById(id: Int) {
+    fun createOrUpdateConsumoAgua(cantidad: Float) {
         viewModelScope.launch {
-            _currentConsumo.value = repository.getConsumoAguaById(id)
+            try {
+                auth.currentUser?.let { user ->
+                    val consumoAgua = ConsumoAgua(
+                        idPerfil = user.uid,
+                        fecha = Date(),
+                        cantidad = cantidad
+                    )
+                    consumoAguaRepository.createOrUpdateConsumoAgua(consumoAgua)
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al registrar el consumo de agua: ${e.message}"
+            }
         }
     }
 
-    fun getConsumosAguaByUserId(userId: Int) {
+    fun getConsumoAguaPorFecha(fecha: Date) {
         viewModelScope.launch {
-            repository.getConsumosAguaByUserId(userId)
-                .collect {
+            auth.currentUser?.let { user ->
+                consumoAguaRepository.getConsumoAguaPorFecha(user.uid, fecha).collect {
                     _consumosAgua.value = it
                 }
+            }
         }
     }
 
-    fun insertConsumoAgua(consumoAgua: ConsumoAgua) {
+    fun deleteConsumoAgua(idConsumo: String) {
         viewModelScope.launch {
-            repository.insertConsumoAgua(consumoAgua)
-            getAllConsumosAgua()
-            updateTotalConsumoHoy(consumoAgua.idPerfil)
-        }
-    }
-
-    fun updateConsumoAgua(consumoAgua: ConsumoAgua) {
-        viewModelScope.launch {
-            repository.updateConsumoAgua(consumoAgua)
-            getAllConsumosAgua()
-            updateTotalConsumoHoy(consumoAgua.idPerfil)
-        }
-    }
-
-    fun deleteConsumoAgua(consumoAgua: ConsumoAgua) {
-        viewModelScope.launch {
-            repository.deleteConsumoAgua(consumoAgua)
-            getAllConsumosAgua()
-            updateTotalConsumoHoy(consumoAgua.idPerfil)
-        }
-    }
-
-    fun getConsumosAguaByDateRange(startDate: Date, endDate: Date) {
-        viewModelScope.launch {
-            repository.getConsumosAguaByDateRange(startDate, endDate)
-                .collect {
-                    _consumosAgua.value = it
+            try {
+                auth.currentUser?.let { user ->
+                    consumoAguaRepository.deleteConsumoAgua(user.uid, idConsumo)
                 }
+            } catch (e: Exception) {
+                _error.value = "Error al eliminar el registro de consumo de agua: ${e.message}"
+            }
         }
     }
 
-    fun updateTotalConsumoHoy(userId: Int) {
-        viewModelScope.launch {
-            val hoy = Date() // Asumiendo que quieres el consumo de hoy
-            val total = repository.getTotalConsumoAguaByFecha(userId, hoy) ?: 0f
-            _totalConsumoHoy.value = total
-        }
+    fun clearError() {
+        _error.value = null
     }
 }

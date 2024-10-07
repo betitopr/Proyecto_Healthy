@@ -1,27 +1,23 @@
 package com.example.proyectohealthy.data.local.entity
 
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
 
-@Entity(
-    tableName = "perfil",
-    indices = [Index(value = ["uid_firebase"], unique = true)]
-)
+
 data class Perfil(
-    @PrimaryKey(autoGenerate = true) val id_Perfil: Int = 0,
-    val uid_firebase: String, // Mantenemos el UID de Firebase
-    val Nombre: String="",
-    val Apellido: String="",
-    val Genero: String = "",
-    val Altura: Float = 0f,
-    val Edad: Int = 0,
-    val Peso_Actual: Float = 0f,
-    val Peso_Objetivo: Float = 0f,
-    val Nivel_Actividad: String = "",
-    val Objetivo: String = "",
-    val Como_Conseguirlo: String = "",
-    val Entrenamiento_Fuerza: String = "",
-    val Perfil_Imagen: String? = null,
-    val Biografia: String? = null
+    val uid: String = "",
+    val nombre: String = "",
+    val apellido: String = "",
+    val genero: String = "",
+    val altura: Float = 0f,
+    val edad: Int = 0,
+    val pesoActual: Float = 0f,
+    val pesoObjetivo: Float = 0f,
+    val nivelActividad: String = "",
+    val objetivo: String = "",
+    val comoConseguirlo: String = "",
+    val entrenamientoFuerza: String = "",
+    val perfilImagen: String? = null,
+    val biografia: String? = null,
+    val alimentosFavoritos: Map<String, Boolean> = emptyMap(),
+    val alimentosRecientes: Map<String, Boolean> = emptyMap(),
+    val premium: Boolean = false
 )

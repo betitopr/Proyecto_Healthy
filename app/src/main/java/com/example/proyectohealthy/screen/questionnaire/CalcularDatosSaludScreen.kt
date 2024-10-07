@@ -18,8 +18,8 @@ fun CalcularDatosSaludScreen(
 ) {
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
     val imc = currentPerfil?.let { perfil ->
-        if (perfil.Peso_Actual > 0f && perfil.Altura > 0f) {
-            perfil.Peso_Actual / ((perfil.Altura / 100f) * (perfil.Altura / 100f))
+        if (perfil.pesoActual > 0f && perfil.altura > 0f) {
+            perfil.pesoActual / ((perfil.altura / 100f) * (perfil.altura / 100f))
         } else {
             0f
         }
@@ -41,8 +41,8 @@ fun CalcularDatosSaludScreen(
 
         Text(text = "IMC: ${"%.2f".format(imc)}")
         currentPerfil?.let { perfil ->
-            Text(text = "Edad: ${perfil.Edad} años")
-            Text(text = "Objetivo: ${perfil.Objetivo}")
+            Text(text = "Edad: ${perfil.edad} años")
+            Text(text = "Objetivo: ${perfil.objetivo}")
         }
 
         // Aquí puedes agregar más cálculos y mostrar los resultados correspondientes

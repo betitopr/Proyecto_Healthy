@@ -53,10 +53,10 @@ fun InformacionPersonalScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            InfoButton(text = "Género: ${currentPerfil?.Genero ?: "No seleccionado"}", onClick = { showGeneroSheet = true })
-            InfoButton(text = "Edad: ${currentPerfil?.Edad ?: "No seleccionada"}", onClick = { showEdadSheet = true })
-            InfoButton(text = "Altura: ${currentPerfil?.Altura?.toInt() ?: "No seleccionada"} cm", onClick = { showAlturaSheet = true })
-            InfoButton(text = "Peso: ${String.format("%.1f", currentPerfil?.Peso_Actual ?: 0f)} kg", onClick = { showPesoSheet = true })
+            InfoButton(text = "Género: ${currentPerfil?.genero ?: "No seleccionado"}", onClick = { showGeneroSheet = true })
+            InfoButton(text = "Edad: ${currentPerfil?.edad ?: "No seleccionada"}", onClick = { showEdadSheet = true })
+            InfoButton(text = "Altura: ${currentPerfil?.altura?.toInt() ?: "No seleccionada"} cm", onClick = { showAlturaSheet = true })
+            InfoButton(text = "Peso: ${String.format("%.1f", currentPerfil?.pesoActual ?: 0f)} kg", onClick = { showPesoSheet = true })
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -143,7 +143,7 @@ fun GeneroSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
 @Composable
 fun EdadSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
     val edades = (18..100).toList()
-    val currentEdad = viewModel.currentPerfil.collectAsState().value?.Edad ?: 18
+    val currentEdad = viewModel.currentPerfil.collectAsState().value?.edad ?: 18
     val initialIndex = (currentEdad - 18).coerceIn(0, edades.size - 1)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     var selectedEdad by remember { mutableStateOf(currentEdad) }
@@ -176,7 +176,7 @@ fun EdadSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
 @Composable
 fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
     val alturas = (140..220).toList()
-    val currentAltura = viewModel.currentPerfil.collectAsState().value?.Altura?.toInt() ?: 170
+    val currentAltura = viewModel.currentPerfil.collectAsState().value?.altura?.toInt() ?: 170
     val initialIndex = (currentAltura - 140).coerceIn(0, alturas.size - 1)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     var selectedAltura by remember { mutableStateOf(currentAltura) }
@@ -211,7 +211,7 @@ fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
 fun PesoSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
     val pesoEntero = (30..200).toList()
     val pesoDecimal = (0..9).toList()
-    val currentPeso = viewModel.currentPerfil.collectAsState().value?.Peso_Actual ?: 70f
+    val currentPeso = viewModel.currentPerfil.collectAsState().value?.pesoActual ?: 70f
     val initialEnteroIndex = (currentPeso.toInt() - 30).coerceIn(0, pesoEntero.size - 1)
     val initialDecimalIndex = ((currentPeso % 1) * 10).toInt().coerceIn(0, pesoDecimal.size - 1)
     val listStateEntero = rememberLazyListState(initialFirstVisibleItemIndex = initialEnteroIndex)

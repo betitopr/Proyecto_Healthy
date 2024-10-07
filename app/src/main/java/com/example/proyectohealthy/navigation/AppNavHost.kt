@@ -16,9 +16,11 @@ import com.example.proyectohealthy.screen.auth.LoginScreen
 import com.example.proyectohealthy.screen.auth.RegisterScreen
 import com.example.proyectohealthy.screen.splash.ProfileScreen
 import com.example.proyectohealthy.screen.splash.SplashScreen
+import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.AuthViewModel
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
+import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
 
 
 @Composable
@@ -26,6 +28,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val authViewModel: AuthViewModel = hiltViewModel()
     val perfilViewModel: PerfilViewModel = hiltViewModel()
     val nutricionViewModel: NutricionViewModel = hiltViewModel()
+    val registroComidaViewModel: RegistroComidaViewModel = hiltViewModel()
+
+    val alimentoViewModel: AlimentoViewModel = hiltViewModel()
 
     val authState by authViewModel.authState.collectAsState()
 
@@ -102,7 +107,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         composable("home") {
             HomeScreen(
                 navController = navController,
-                perfilViewModel = perfilViewModel
+                perfilViewModel = perfilViewModel ,
+                registroComidaViewModel = registroComidaViewModel,
+                alimentoViewModel = alimentoViewModel
             )
         }
         composable("profile") {

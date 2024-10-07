@@ -16,7 +16,7 @@ fun EntrenamientoFuerzaScreen(
     onPreviousClick: () -> Unit
 ) {
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
-    var entrenamientoFuerza by remember { mutableStateOf(currentPerfil?.Entrenamiento_Fuerza ?: "") }
+    var entrenamientoFuerza by remember { mutableStateOf(currentPerfil?.entrenamientoFuerza ?: "") }
 
     Scaffold(
         topBar = {

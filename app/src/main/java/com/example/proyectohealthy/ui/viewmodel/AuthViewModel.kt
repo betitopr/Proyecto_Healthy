@@ -113,24 +113,24 @@ class AuthViewModel @Inject constructor(
         try {
             val existingPerfil = userRepository.getPerfil(user.uid)
             val updatedPerfil = existingPerfil?.copy(
-                Nombre = user.displayName?.split(" ")?.firstOrNull() ?: existingPerfil.Nombre,
-                Apellido = user.displayName?.split(" ")?.lastOrNull() ?: existingPerfil.Apellido,
-                Perfil_Imagen = user.photoUrl?.toString() ?: existingPerfil.Perfil_Imagen
+                nombre = user.displayName?.split(" ")?.firstOrNull() ?: existingPerfil.nombre,
+                apellido = user.displayName?.split(" ")?.lastOrNull() ?: existingPerfil.apellido,
+                perfilImagen = user.photoUrl?.toString() ?: existingPerfil.perfilImagen
             ) ?: Perfil(
-                uid_firebase = user.uid,
-                Nombre = user.displayName?.split(" ")?.firstOrNull() ?: "",
-                Apellido = user.displayName?.split(" ")?.lastOrNull() ?: "",
-                Genero = "",
-                Altura = 0f,
-                Edad = 0,
-                Peso_Actual = 0f,
-                Peso_Objetivo = 0f,
-                Nivel_Actividad = "",
-                Objetivo = "",
-                Como_Conseguirlo = "",
-                Entrenamiento_Fuerza = "",
-                Perfil_Imagen = user.photoUrl?.toString() ?: "",
-                Biografia = ""
+                uid = user.uid,
+                nombre = user.displayName?.split(" ")?.firstOrNull() ?: "",
+                apellido = user.displayName?.split(" ")?.lastOrNull() ?: "",
+                genero = "",
+                altura = 0f,
+                edad = 0,
+                pesoActual = 0f,
+                pesoObjetivo = 0f,
+                nivelActividad = "",
+                objetivo = "",
+                comoConseguirlo = "",
+                entrenamientoFuerza = "",
+                perfilImagen = user.photoUrl?.toString() ?: "",
+                biografia = ""
             )
             userRepository.createOrUpdatePerfil(updatedPerfil)
             Log.d("AuthViewModel", "Perfil de usuario creado o actualizado exitosamente")
@@ -139,7 +139,8 @@ class AuthViewModel @Inject constructor(
             _authState.value = AuthState.Error("Failed to create or update user profile: ${e.message}")
         }
     }
-/*
+
+    /*
     private suspend fun createOrUpdateUserProfile() {
         val user = auth.currentUser ?: run {
             _authState.value = AuthState.Error("No authenticated user found")

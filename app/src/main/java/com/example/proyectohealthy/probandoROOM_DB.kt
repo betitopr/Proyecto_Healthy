@@ -10,11 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.proyectohealthy.data.local.entity.Alimento
-import com.example.proyectohealthy.ui.viewmodel.AlimentosViewModel
 import java.util.*
 import com.example.proyectohealthy.data.repository.AlimentoRepository
 
-@Composable
+/*@Composable
 fun AlimentosScreen(
     repository: AlimentoRepository, // Pasa el repositorio como parámetro
     viewModel: AlimentosViewModel = viewModel(
@@ -103,4 +102,4 @@ fun AlimentoItem(alimento: Alimento) {
             Text(text = "Proteínas: ${alimento.ProteinasPor100g} por 100g", style = MaterialTheme.typography.bodyMedium)
         }
     }
-}
+}*/

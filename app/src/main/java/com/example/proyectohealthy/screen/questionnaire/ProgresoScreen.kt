@@ -10,9 +10,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.proyectohealthy.UiState
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
+import com.example.proyectohealthy.ui.viewmodel.NutricionUiState
 import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
@@ -30,9 +30,7 @@ fun ProgresoScreen(
     val uiState by nutricionViewModel.uiState.collectAsState()
 
     LaunchedEffect(key1 = currentPerfil) {
-        currentPerfil?.let { perfil ->
-            nutricionViewModel.obtenerPlanNutricional(perfil)
-        }
+        nutricionViewModel.obtenerPlanNutricional()
     }
 
     Column(
@@ -53,13 +51,13 @@ fun ProgresoScreen(
         )
 
         when (val state = uiState) {
-            is UiState.Loading -> CircularProgressIndicator()
-            is UiState.Success.NutritionPlanGenerated -> {
-                val planNutricional = state.data
+            is NutricionUiState.Loading -> CircularProgressIndicator()
+            is NutricionUiState.Success -> {
+                val planNutricional = state.planNutricional
                 currentPerfil?.let { perfil ->
                     WeightProgressChart(
-                        currentWeight = perfil.Peso_Actual,
-                        targetWeight = perfil.Peso_Objetivo,
+                        currentWeight = perfil.pesoActual,
+                        targetWeight = perfil.pesoObjetivo,
                         tiempoEstimado = planNutricional.tiempoEstimado
                     )
 
@@ -70,12 +68,10 @@ fun ProgresoScreen(
                     Text("Tiempo estimado: ${planNutricional.tiempoEstimado} días")
 
                     Spacer(modifier = Modifier.height(16.dp))
-
-
                 }
             }
-            is UiState.Error -> Text("Error: ${(uiState as UiState.Error).errorMessage}")
-            else -> {}
+            is NutricionUiState.Error -> Text("Error: ${state.message}")
+            NutricionUiState.Initial -> Text("Esperando datos...")
         }
         Row(
             modifier = Modifier.fillMaxWidth(),

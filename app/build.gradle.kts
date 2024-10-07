@@ -22,6 +22,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -50,6 +51,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        viewBinding = true
     }
 
     composeOptions {
@@ -82,15 +84,15 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.moshi)
     implementation(libs.androidx.adapters)
-    implementation(libs.firebase.crashlytics.buildtools)
 
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
-    implementation("com.google.firebase:firebase-auth-ktx")
+    // Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx")
-    implementation ("com.google.android.gms:play-services-auth:20.4.1")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
@@ -108,6 +110,9 @@ dependencies {
 
     // Gson
     implementation("com.google.code.gson:gson:2.10")
+
+    // Multidex
+    implementation("androidx.multidex:multidex:2.0.1")
 
     // Pruebas
     testImplementation(libs.junit)

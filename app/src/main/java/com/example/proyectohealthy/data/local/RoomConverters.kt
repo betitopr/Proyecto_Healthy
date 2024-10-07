@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.data.local
+/*package com.example.proyectohealthy.data.local
 
 import androidx.room.TypeConverter
 import java.util.Date
@@ -13,4 +13,4 @@ class RoomConverters {
     fun dateToTimestamp(date: Date?): Long? {
         return date?.time
     }
-}
+}*/

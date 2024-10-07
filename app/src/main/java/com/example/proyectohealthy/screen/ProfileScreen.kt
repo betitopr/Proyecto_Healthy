@@ -38,7 +38,7 @@ fun ProfileScreen(
             CustomTopBar(
                 navController = navController,
                 title = "Perfil",
-                userPhotoUrl = perfilState?.Perfil_Imagen
+                userPhotoUrl = perfilState?.perfilImagen
             )
 
         },
@@ -81,9 +81,9 @@ fun ProfileContent(
         color = MaterialTheme.colorScheme.primary
     ) {
         when {
-            perfil.Perfil_Imagen != null && perfil.Perfil_Imagen.startsWith("http") -> {
+            perfil.perfilImagen != null && perfil.perfilImagen.startsWith("http") -> {
                 AsyncImage(
-                    model = perfil.Perfil_Imagen,
+                    model = perfil.perfilImagen,
                     contentDescription = "Foto de perfil",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -101,7 +101,7 @@ fun ProfileContent(
     }
     Spacer(modifier = Modifier.height(16.dp))
     Text(
-        text = "${perfil.Nombre} ${perfil.Apellido}",
+        text = "${perfil.nombre} ${perfil.apellido}",
         style = MaterialTheme.typography.headlineMedium
     )
     Spacer(modifier = Modifier.height(24.dp))
@@ -131,13 +131,13 @@ fun ProfileInfoCard(perfil: Perfil) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            ProfileInfoItem("Género", perfil.Genero)
-            ProfileInfoItem("Altura", "${perfil.Altura} cm")
-            ProfileInfoItem("Peso actual", "${perfil.Peso_Actual} kg")
-            ProfileInfoItem("Peso objetivo", "${perfil.Peso_Objetivo} kg")
-            ProfileInfoItem("Nivel de actividad", perfil.Nivel_Actividad)
-            ProfileInfoItem("Objetivo de salud", perfil.Objetivo)
-            perfil.Biografia?.let { ProfileInfoItem("Biografía", it) }
+            ProfileInfoItem("Género", perfil.genero)
+            ProfileInfoItem("Altura", "${perfil.altura} cm")
+            ProfileInfoItem("Peso actual", "${perfil.pesoActual} kg")
+            ProfileInfoItem("Peso objetivo", "${perfil.pesoObjetivo} kg")
+            ProfileInfoItem("Nivel de actividad", perfil.nivelActividad)
+            ProfileInfoItem("Objetivo de salud", perfil.objetivo)
+            perfil.biografia?.let { ProfileInfoItem("Biografía", it) }
         }
     }
 }

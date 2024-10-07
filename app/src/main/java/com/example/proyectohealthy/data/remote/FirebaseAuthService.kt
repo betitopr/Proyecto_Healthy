@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.data.remote
+/*package com.example.proyectohealthy.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -32,4 +32,4 @@ class FirebaseAuthService @Inject constructor(
     fun getCurrentUser(): FirebaseUser? {
         return auth.currentUser
     }
-}
+}*/

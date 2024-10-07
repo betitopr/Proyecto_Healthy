@@ -6,85 +6,69 @@ import com.example.proyectohealthy.data.local.entity.PlanNutricional
 import com.example.proyectohealthy.data.repository.PlanNutricionalRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import java.util.Date
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
 
-class PlanNutricionalViewModel(private val repository: PlanNutricionalRepository) : ViewModel() {
-
+@HiltViewModel
+class PlanNutricionalViewModel @Inject constructor(
+    private val planNutricionalRepository: PlanNutricionalRepository
+) : ViewModel() {
     private val _planes = MutableStateFlow<List<PlanNutricional>>(emptyList())
-    val planes: StateFlow<List<PlanNutricional>> = _planes
+    val planes: StateFlow<List<PlanNutricional>> = _planes.asStateFlow()
 
     private val _currentPlan = MutableStateFlow<PlanNutricional?>(null)
-    val currentPlan: StateFlow<PlanNutricional?> = _currentPlan
+    val currentPlan: StateFlow<PlanNutricional?> = _currentPlan.asStateFlow()
 
-    init {
-        getAllPlanes()
-    }
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
-    private fun getAllPlanes() {
+    fun createOrUpdatePlanNutricional(plan: PlanNutricional) {
         viewModelScope.launch {
-            repository.getAllPlanes()
-                .catch { e ->
-                    // Manejar errores aquí
-                }
-                .collect {
-                    _planes.value = it
-                }
+            try {
+                planNutricionalRepository.createOrUpdatePlanNutricional(plan)
+            } catch (e: Exception) {
+                _error.value = "Error al crear o actualizar el plan nutricional: ${e.message}"
+            }
         }
     }
 
-    fun getPlanById(id: Int) {
+    fun getPlanNutricional(id: String) {
         viewModelScope.launch {
-            _currentPlan.value = repository.getPlanById(id)
+            planNutricionalRepository.getPlanNutricionalFlow(id).collect {
+                _currentPlan.value = it
+            }
         }
     }
 
-    fun getPlanesByUserId(userId: Int) {
+    fun getPlanesNutricionalesForPerfil(idPerfil: String) {
         viewModelScope.launch {
-            repository.getPlanesByUserId(userId)
-                .collect {
-                    _planes.value = it
-                }
+            planNutricionalRepository.getPlanesNutricionalesForPerfil(idPerfil).collect {
+                _planes.value = it
+            }
         }
     }
 
-    fun insertPlan(plan: PlanNutricional) {
+    fun deletePlanNutricional(id: String) {
         viewModelScope.launch {
-            repository.insertPlan(plan)
-            getAllPlanes()
+            try {
+                planNutricionalRepository.deletePlanNutricional(id)
+            } catch (e: Exception) {
+                _error.value = "Error al eliminar el plan nutricional: ${e.message}"
+            }
         }
     }
 
-    fun updatePlan(plan: PlanNutricional) {
+    fun getPlanesNutricionalesActivos() {
         viewModelScope.launch {
-            repository.updatePlan(plan)
-            getAllPlanes()
+            planNutricionalRepository.getPlanesNutricionalesActivos().collect {
+                _planes.value = it
+            }
         }
     }
 
-    fun deletePlan(plan: PlanNutricional) {
-        viewModelScope.launch {
-            repository.deletePlan(plan)
-            getAllPlanes()
-        }
-    }
-
-    fun getPlanesActivos(fecha: Date) {
-        viewModelScope.launch {
-            repository.getPlanesActivos(fecha)
-                .collect {
-                    _planes.value = it
-                }
-        }
-    }
-
-    fun getPlanesByMaxCalorias(maxCalorias: Int) {
-        viewModelScope.launch {
-            repository.getPlanesByMaxCalorias(maxCalorias)
-                .collect {
-                    _planes.value = it
-                }
-        }
+    fun clearError() {
+        _error.value = null
     }
 }

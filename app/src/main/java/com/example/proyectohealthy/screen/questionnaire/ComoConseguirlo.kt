@@ -24,7 +24,7 @@ fun ComoConseguirloScreen(
     onPreviousClick: () -> Unit
 ) {
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
-    var selectedComoConseguirlo by remember { mutableStateOf(currentPerfil?.Como_Conseguirlo ?: "") }
+    var selectedComoConseguirlo by remember { mutableStateOf(currentPerfil?.comoConseguirlo ?: "") }
 
     Scaffold(
         topBar = {

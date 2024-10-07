@@ -28,7 +28,7 @@ fun PesoObjetivoScreen(
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
     val pesoEntero = (30..200).toList()
     val pesoDecimal = (0..9).toList()
-    val currentPesoObjetivo = currentPerfil?.Peso_Objetivo ?: 70f
+    val currentPesoObjetivo = currentPerfil?.pesoObjetivo ?: 70f
     val listStateEntero = rememberLazyListState(initialFirstVisibleItemIndex = (currentPesoObjetivo.toInt() - 30).coerceIn(0, pesoEntero.size - 1))
     val listStateDecimal = rememberLazyListState(initialFirstVisibleItemIndex = ((currentPesoObjetivo % 1) * 10).toInt())
 
