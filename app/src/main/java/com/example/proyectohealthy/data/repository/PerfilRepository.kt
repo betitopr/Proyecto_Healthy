@@ -42,6 +42,7 @@ class PerfilRepository @Inject constructor(
         awaitClose { perfilesRef.child(uid).removeEventListener(listener) }
     }
 
+
     suspend fun updateObjetivo(uid: String, objetivo: String) {
         perfilesRef.child(uid).child("objetivo").setValue(objetivo).await()
     }
@@ -93,4 +94,6 @@ class PerfilRepository @Inject constructor(
     suspend fun addAlimentoReciente(uid: String, alimentoId: String) {
         perfilesRef.child(uid).child("alimentosRecientes").child(alimentoId).setValue(true).await()
     }
+
+
 }

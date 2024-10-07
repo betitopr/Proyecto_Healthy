@@ -25,7 +25,6 @@ class AuthViewModel @Inject constructor(
 ) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
     val authState = _authState.asStateFlow()
-
     init {
         // Verifica el estado de autenticación al iniciar el ViewModel
         checkAuthState()
@@ -97,7 +96,7 @@ class AuthViewModel @Inject constructor(
             try {
                 auth.signOut()
                 _authState.value = AuthState.NotAuthenticated
-                Log.d("AuthViewModel", "Sesión cerrada exitosamente")
+                Log.d("AuthViewModel", "Sesión cerrada exitosamente y perfil limpiado")
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error al cerrar sesión: ${e.message}")
                 Log.e("AuthViewModel", "Error al cerrar sesión", e)

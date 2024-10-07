@@ -23,22 +23,41 @@ class PerfilViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
-    private val _isPerfilCompleto = MutableStateFlow<Boolean>(false)
+    private val _isPerfilCompleto = MutableStateFlow(false)
     val isPerfilCompleto = _isPerfilCompleto.asStateFlow()
 
+    private val _isEditing = MutableStateFlow(false)
+    val isEditing = _isEditing.asStateFlow()
+
     init {
-        loadCurrentPerfil()
+        observeAuthChanges()
     }
 
-    private fun loadCurrentPerfil() {
-        viewModelScope.launch {
-            auth.currentUser?.let { user ->
-                perfilRepository.getPerfilFlow(user.uid).collect { perfil ->
-                    _currentPerfil.value = perfil ?: createDefaultPerfil(user.uid)
-                    checkPerfilCompleto()
-                }
+    private fun observeAuthChanges() {
+        auth.addAuthStateListener { firebaseAuth ->
+            firebaseAuth.currentUser?.let { user ->
+                loadCurrentPerfil(user.uid)
+            } ?: run {
+                clearCurrentPerfil()
             }
         }
+    }
+
+    private fun loadCurrentPerfil(uid: String) {
+        viewModelScope.launch {
+            perfilRepository.getPerfilFlow(uid).collect { perfil ->
+                _currentPerfil.value = perfil ?: createDefaultPerfil(uid)
+                checkPerfilCompleto()
+            }
+        }
+    }
+
+    fun clearCurrentPerfil() {
+        _currentPerfil.value = null
+        _isPerfilCompleto.value = false
+        _isEditing.value = false
+        _error.value = null
+        Log.d("PerfilViewModel", "Perfil actual limpiado")
     }
 
     private fun checkPerfilCompleto() {
@@ -66,6 +85,36 @@ class PerfilViewModel @Inject constructor(
         )
     }
 
+    fun updatePerfil(perfil: Perfil) {
+        viewModelScope.launch {
+            try {
+                perfilRepository.createOrUpdatePerfil(perfil)
+                _currentPerfil.value = perfil
+                checkPerfilCompleto()
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar el perfil: ${e.message}"
+            }
+        }
+    }
+
+    fun setEditing(isEditing: Boolean) {
+        _isEditing.value = isEditing
+    }
+
+    fun updatePerfilField(updateFunction: suspend (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                auth.currentUser?.uid?.let { uid ->
+                    updateFunction(uid)
+                    loadCurrentPerfil(uid)
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar el perfil: ${e.message}"
+            }
+        }
+    }
+
+    // Funciones de actualización específicas
     fun updateObjetivo(objetivo: String) = updatePerfilField { uid ->
         perfilRepository.updateObjetivo(uid, objetivo)
     }
@@ -118,31 +167,11 @@ class PerfilViewModel @Inject constructor(
         perfilRepository.addAlimentoReciente(uid, alimentoId)
     }
 
-    private fun updatePerfilField(updateFunction: suspend (String) -> Unit) {
-        viewModelScope.launch {
-            try {
-                auth.currentUser?.uid?.let { uid ->
-                    updateFunction(uid)
-                    loadCurrentPerfil() // Recargar el perfil después de la actualización
-                }
-            } catch (e: Exception) {
-                _error.value = "Error al actualizar el perfil: ${e.message}"
-            }
-        }
-    }
-
-    fun createOrUpdatePerfil(perfil: Perfil) {
-        viewModelScope.launch {
-            try {
-                perfilRepository.createOrUpdatePerfil(perfil)
-                _currentPerfil.value = perfil
-            } catch (e: Exception) {
-                _error.value = "Error al crear o actualizar el perfil: ${e.message}"
-            }
-        }
-    }
-
     fun clearError() {
         _error.value = null
+    }
+    fun signOut() {
+        auth.signOut()
+        clearCurrentPerfil()
     }
 }

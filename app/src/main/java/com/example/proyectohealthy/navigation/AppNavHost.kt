@@ -1,6 +1,5 @@
 package com.example.proyectohealthy.navigation
 
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -14,14 +13,9 @@ import androidx.navigation.compose.rememberNavController
 import com.example.proyectohealthy.screen.HomeScreen
 import com.example.proyectohealthy.screen.auth.LoginScreen
 import com.example.proyectohealthy.screen.auth.RegisterScreen
-import com.example.proyectohealthy.screen.splash.ProfileScreen
+import com.example.proyectohealthy.screen.ProfileScreen
 import com.example.proyectohealthy.screen.splash.SplashScreen
-import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
-import com.example.proyectohealthy.ui.viewmodel.AuthViewModel
-import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
-import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
-import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
-
+import com.example.proyectohealthy.ui.viewmodel.*
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
@@ -29,20 +23,27 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val perfilViewModel: PerfilViewModel = hiltViewModel()
     val nutricionViewModel: NutricionViewModel = hiltViewModel()
     val registroComidaViewModel: RegistroComidaViewModel = hiltViewModel()
-
     val alimentoViewModel: AlimentoViewModel = hiltViewModel()
 
     val authState by authViewModel.authState.collectAsState()
+    val isPerfilCompleto by perfilViewModel.isPerfilCompleto.collectAsState()
 
     LaunchedEffect(Unit) {
         authViewModel.checkAuthState()
     }
 
-    LaunchedEffect(authState) {
+    LaunchedEffect(authState, isPerfilCompleto) {
         when (authState) {
             is AuthViewModel.AuthState.Authenticated -> {
-                //No hacemos nada aquí, ya que la navegación a "questionnaire" o "home"
-                //se maneja en otros lugares
+                if (isPerfilCompleto) {
+                    navController.navigate("home") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                } else {
+                    navController.navigate("questionnaire") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
             }
             is AuthViewModel.AuthState.NotAuthenticated -> {
                 navController.navigate("auth") {
@@ -56,26 +57,21 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = "splash") {
         composable("splash") {
             SplashScreen(onSplashFinished = {
-                when (authState) {
-                    is AuthViewModel.AuthState.Authenticated -> {
-                        navController.navigate("questionnaire") {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    }
-                    else -> {
-                        navController.navigate("auth") {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    }
-                }
+                // La navegación se maneja en el LaunchedEffect de arriba
             })
         }
         composable("auth") {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate("register") },
                 onNavigateToHome = {
-                    navController.navigate("questionnaire") {
-                        popUpTo("auth") { inclusive = true }
+                    if (isPerfilCompleto) {
+                        navController.navigate("home") {
+                            popUpTo("auth") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("questionnaire") {
+                            popUpTo("auth") { inclusive = true }
+                        }
                     }
                 },
                 viewModel = authViewModel
@@ -92,7 +88,6 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 viewModel = authViewModel
             )
         }
-
         composable("questionnaire") {
             QuestionnaireHost(
                 perfilViewModel = perfilViewModel,
@@ -107,7 +102,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         composable("home") {
             HomeScreen(
                 navController = navController,
-                perfilViewModel = perfilViewModel ,
+                perfilViewModel = perfilViewModel,
                 registroComidaViewModel = registroComidaViewModel,
                 alimentoViewModel = alimentoViewModel
             )
@@ -121,5 +116,3 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
     }
 }
-
-
