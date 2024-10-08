@@ -4,7 +4,7 @@ plugins {
     id("kotlin-kapt")
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
     id("com.google.dagger.hilt.android")
-    id("com.google.gms.google-services")
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -64,7 +64,7 @@ android {
         }
     }
 }
-
+//Modificaciones para formato KTS
 dependencies {
     // UI y Compose
     implementation(libs.vico.compose)
@@ -85,13 +85,13 @@ dependencies {
     implementation(libs.moshi)
     implementation(libs.androidx.adapters)
 
-    // Firebase BoM
+    // Firebase (usando Firebase BOM para gestionar versiones)
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-    implementation("com.google.firebase:firebase-database")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-storage")
-    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // Hilt
