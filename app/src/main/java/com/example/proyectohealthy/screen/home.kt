@@ -35,8 +35,6 @@ fun HomeScreen(
     alimentoViewModel: AlimentoViewModel
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
-    var showBusquedaDialog by remember { mutableStateOf(false) }
-    var tipoComidaSeleccionado by remember { mutableStateOf("") }
 
     var showIngresoAlimento by remember { mutableStateOf(false) }
 
@@ -135,8 +133,7 @@ fun HomeScreen(
                     )
                     Button(
                         onClick = {
-                            tipoComidaSeleccionado = tipoComida
-                            showBusquedaDialog = true
+                            navController.navigate("seleccionMetodoAlimento/$tipoComida")
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -148,11 +145,23 @@ fun HomeScreen(
                     registrosComidaDiarios[tipoComida]?.forEach { registro ->
                         registro.alimentos.forEach { (alimentoId, cantidad) ->
                             // Aquí deberías obtener el Alimento correspondiente al alimentoId
-                            val alimentoDummy = Alimento(id = alimentoId, nombre = "Alimento", calorias = 100, proteinas = 10f, carbohidratos = 20f, grasas = 5f, nombrePorcion = "unidad")
+                            val alimentoDummy = Alimento(
+                                id = alimentoId,
+                                nombre = "Alimento",
+                                calorias = 100f,
+                                proteinas = 10f,
+                                carbohidratos = 20f,
+                                grasas = 5f,
+                                nombrePorcion = "unidad"
+                            )
                             RegistroComidaCard(
                                 registroComida = registro,
                                 alimento = alimentoDummy,
-                                onEliminar = { registroComidaViewModel.eliminarRegistroComida(registro) }
+                                onEliminar = {
+                                    registroComidaViewModel.eliminarRegistroComida(
+                                        registro
+                                    )
+                                }
                             )
                         }
                     }
@@ -202,35 +211,7 @@ fun HomeScreen(
                     }
                 }
             }
-
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { showIngresoAlimento = !showIngresoAlimento },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (showIngresoAlimento) "Ocultar Ingreso de Alimentos" else "Mostrar Ingreso de Alimentos")
-                }
-            }
-
-            // Formulario de ingreso de alimentos
-            if (showIngresoAlimento) {
-                item {
-                    IngresoAlimentoComponent(viewModel = alimentoViewModel)
-                }
-            }
         }
     }
 
-    // Diálogo de búsqueda de alimentos
-    if (showBusquedaDialog) {
-        BusquedaAlimentosDialog(
-            onDismiss = { showBusquedaDialog = false },
-            onAlimentoSelected = { alimento, cantidad ->
-                registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado)
-                showBusquedaDialog = false
-            },
-            viewModel = registroComidaViewModel
-        )
-    }
 }

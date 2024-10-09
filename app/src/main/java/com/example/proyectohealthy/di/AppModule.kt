@@ -1,13 +1,18 @@
 package com.example.proyectohealthy.di
 
+import android.content.Context
+import com.example.proyectohealthy.data.local.database.AppDatabase
+import com.example.proyectohealthy.data.remote.OpenFoodFactsApi
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.example.proyectohealthy.data.repository.*
+import com.example.proyectohealthy.util.RetrofitClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -64,4 +69,26 @@ object AppModule {
     @Singleton
     fun provideConsumoAguaRepository(database: FirebaseDatabase): ConsumoAguaRepository =
         ConsumoAguaRepository(database)
+
+    // Providers para Scanner
+    @Provides
+    @Singleton
+    fun provideOpenFoodFactsApi(): OpenFoodFactsApi {
+        return RetrofitClient.openFoodFactsApi
+    }
+
+    @Provides
+    @Singleton
+    fun provideAlimentoScannedRepository(
+        openFoodFactsApi: OpenFoodFactsApi,
+        appDatabase: AppDatabase
+    ): AlimentoScannedRepository {
+        return AlimentoScannedRepository(openFoodFactsApi, appDatabase.alimentoDao())
+    }
+
+    @Provides
+    @Singleton
+    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
+        return AppDatabase.getInstance(context)
+    }
 }

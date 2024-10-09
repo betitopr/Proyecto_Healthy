@@ -112,7 +112,7 @@ fun IngresoAlimentoComponent(viewModel: AlimentoViewModel) {
                     categoria = categoria,
                     nombrePorcion = nombrePorcion,
                     pesoPorcion = pesoPorcion.toFloatOrNull() ?: 0f,
-                    calorias = calorias.toIntOrNull() ?: 0,
+                    calorias = calorias.toFloatOrNull() ?: 0f,  // Cambiado de Int a Float
                     proteinas = proteinas.toFloatOrNull() ?: 0f,
                     carbohidratos = carbohidratos.toFloatOrNull() ?: 0f,
                     grasas = grasas.toFloatOrNull() ?: 0f,

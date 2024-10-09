@@ -1,5 +1,6 @@
 package com.example.proyectohealthy.navigation
 
+import SeleccionMetodoAlimentoScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -9,12 +10,15 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.proyectohealthy.screen.AgregarAlimentoManualScreen
+import com.example.proyectohealthy.screen.BuscarAlimentoScreen
 
 import com.example.proyectohealthy.screen.HomeScreen
 import com.example.proyectohealthy.screen.auth.LoginScreen
 import com.example.proyectohealthy.screen.auth.RegisterScreen
 import com.example.proyectohealthy.screen.ProfileScreen
 import com.example.proyectohealthy.screen.splash.SplashScreen
+import com.example.proyectohealthy.ui.scanner.ScannerScreen
 import com.example.proyectohealthy.ui.viewmodel.*
 
 @Composable
@@ -113,6 +117,36 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 perfilViewModel = perfilViewModel,
                 authViewModel = authViewModel
             )
+        }
+        composable("seleccionMetodoAlimento/{tipoComida}") { backStackEntry ->
+            val tipoComida = backStackEntry.arguments?.getString("tipoComida") ?: ""
+            SeleccionMetodoAlimentoScreen(
+                navController = navController,
+                tipoComida = tipoComida
+            )
+        }
+        composable("agregarAlimentoManual/{tipoComida}") { backStackEntry ->
+            val tipoComida = backStackEntry.arguments?.getString("tipoComida") ?: ""
+            AgregarAlimentoManualScreen(
+                navController = navController,
+                viewModel = hiltViewModel(),
+                registroComidaViewModel = hiltViewModel(),
+                tipoComida = tipoComida
+            )
+        }
+
+        composable("buscarAlimento/{tipoComida}") { backStackEntry ->
+            val tipoComida = backStackEntry.arguments?.getString("tipoComida") ?: ""
+            BuscarAlimentoScreen(
+                navController = navController,
+                viewModel = hiltViewModel(),
+                registroComidaViewModel = hiltViewModel(),
+                tipoComida = tipoComida
+            )
+        }
+
+        composable("scanner") {
+           ScannerScreen(navController = navController)
         }
     }
 }

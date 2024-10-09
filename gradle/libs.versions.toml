@@ -24,6 +24,8 @@ firebaseDatabaseKtx = "21.0.0"
 playServicesBasement = "18.4.0"
 
 [libraries]
+#Libreria de Zxing
+zxing-embedded = { group = "com.journeyapps", name = "zxing-android-embedded", version = "4.3.0" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

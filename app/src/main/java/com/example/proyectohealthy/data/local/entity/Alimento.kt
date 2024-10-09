@@ -1,15 +1,16 @@
 package com.example.proyectohealthy.data.local.entity
-
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.util.Date
-
+@Entity(tableName = "alimentos")
 data class Alimento(
-    val id: String = "",
+    @PrimaryKey val id: String = "",
     val marca: String = "",
     val nombre: String = "",
     val categoria: String = "",
     val nombrePorcion: String = "",
     val pesoPorcion: Float = 0f,
-    val calorias: Int = 0,
+    val calorias: Float = 0f,
     val grasas: Float = 0f,
     val grasasSaturadas: Float = 0f,
     val grasasTrans: Float = 0f,
