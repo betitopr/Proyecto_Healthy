@@ -1,5 +1,7 @@
 package com.example.proyectohealthy.screen
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +20,7 @@ import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.components.CustomBottomBar
 import com.example.proyectohealthy.components.CustomTopBar
+import com.example.proyectohealthy.components.DateSelector
 import com.example.proyectohealthy.components.IngresoAlimentoComponent
 import com.example.proyectohealthy.components.RegistroComidaCard
 import com.example.proyectohealthy.data.local.entity.Alimento
@@ -25,7 +28,9 @@ import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
 import com.example.proyectohealthy.ui.components.BusquedaAlimentosDialog
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
+import java.time.LocalDate
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -37,6 +42,9 @@ fun HomeScreen(
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
     var showBusquedaDialog by remember { mutableStateOf(false) }
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
+
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+
 
     var showIngresoAlimento by remember { mutableStateOf(false) }
 
@@ -62,14 +70,12 @@ fun HomeScreen(
                 .padding(16.dp)
         ) {
             item {
-                // Calendario (Placeholder)
-                Text(
-                    text = "Calendario",
-                    fontSize = 24.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    textAlign = TextAlign.Center
+                DateSelector(
+                    selectedDate = selectedDate,
+                    onDateSelected = { newDate ->
+                        selectedDate = newDate
+                        //registroComidaViewModel.cargarRegistrosComidaPorFecha(newDate)
+                    }
                 )
             }
 
