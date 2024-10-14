@@ -24,6 +24,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val nutricionViewModel: NutricionViewModel = hiltViewModel()
     val registroComidaViewModel: RegistroComidaViewModel = hiltViewModel()
     val alimentoViewModel: AlimentoViewModel = hiltViewModel()
+    val misAlimentosViewModel: MisAlimentosViewModel = hiltViewModel()
+
 
     val authState by authViewModel.authState.collectAsState()
     val isPerfilCompleto by perfilViewModel.isPerfilCompleto.collectAsState()
@@ -104,7 +106,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 navController = navController,
                 perfilViewModel = perfilViewModel,
                 registroComidaViewModel = registroComidaViewModel,
-                alimentoViewModel = alimentoViewModel
+                alimentoViewModel = alimentoViewModel,
+                misAlimentosViewModel = misAlimentosViewModel
             )
         }
         composable("profile") {

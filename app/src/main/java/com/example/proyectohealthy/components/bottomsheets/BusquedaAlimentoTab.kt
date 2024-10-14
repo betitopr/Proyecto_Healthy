@@ -4,9 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
@@ -77,30 +81,36 @@ fun DetalleAlimentoBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxHeight(0.7f)
+        modifier = Modifier.fillMaxHeight(0.78f),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
+                .imePadding() // Ajusta el contenido cuando aparece el teclado
+                .navigationBarsPadding() // Agrega padding para la barra de navegación
+                .verticalScroll(rememberScrollState()) // Permite desplazamiento si el contenido no cabe
         ) {
             Text(alimento.nombre, style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("ID: ${alimento.id}")  // Añadido para debug
             Text("Calorías: ${alimento.calorias}")
             Text("Proteínas: ${alimento.proteinas}g")
             Text("Carbohidratos: ${alimento.carbohidratos}g")
             Text("Grasas: ${alimento.grasas}g")
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = cantidad,
                 onValueChange = { cantidad = it },
                 label = { Text("Cantidad (${alimento.nombrePorcion})") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Row(
                 modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 TextButton(onClick = onDismiss) {

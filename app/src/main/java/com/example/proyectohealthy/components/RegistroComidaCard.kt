@@ -9,12 +9,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.data.local.entity.RegistroComida
 
 @Composable
 fun RegistroComidaCard(
     registroComida: RegistroComida,
-    alimento: Alimento,
+    alimento: Any,
     cantidad: Float,
     onEliminar: () -> Unit
 ) {
@@ -30,15 +31,31 @@ fun RegistroComidaCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = alimento.nombre, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    text = "$cantidad ${alimento.nombrePorcion}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "${(alimento.calorias * cantidad).toInt()} kcal",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                when (alimento) {
+                    is Alimento -> {
+                        Text(text = alimento.nombre, style = MaterialTheme.typography.titleMedium)
+                        Text(text = "Cantidad: $cantidad ${alimento.nombrePorcion}")
+                        Text(text = "Calorías: ${(alimento.calorias * cantidad).toInt()}")
+                        Text(
+                            text = "P: ${(alimento.proteinas * cantidad).toInt()}g | " +
+                                    "C: ${(alimento.carbohidratos * cantidad).toInt()}g | " +
+                                    "G: ${(alimento.grasas * cantidad).toInt()}g"
+                        )
+                    }
+                    is MisAlimentos -> {
+                        Text(text = alimento.nombre, style = MaterialTheme.typography.titleMedium)
+                        Text(text = "Cantidad: $cantidad ${alimento.nombrePorcion}")
+                        Text(text = "Calorías: ${(alimento.calorias * cantidad).toInt()}")
+                        Text(
+                            text = "P: ${(alimento.proteinas * cantidad).toInt()}g | " +
+                                    "C: ${(alimento.carbohidratos * cantidad).toInt()}g | " +
+                                    "G: ${(alimento.grasas * cantidad).toInt()}g"
+                        )
+                    }
+                    else -> {
+                        Text("Alimento desconocido", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
             IconButton(onClick = onEliminar) {
                 Icon(Icons.Default.Close, contentDescription = "Eliminar")

@@ -26,10 +26,12 @@ import com.example.proyectohealthy.components.IngresoAlimentoComponent
 import com.example.proyectohealthy.components.RegistroComidaCard
 import com.example.proyectohealthy.components.bottomsheets.AlimentoBottomSheet
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.data.local.entity.RegistroComida
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
+import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import java.time.LocalDate
 import java.util.Date
 
@@ -40,7 +42,9 @@ fun HomeScreen(
     navController: NavController,
     perfilViewModel: PerfilViewModel,
     registroComidaViewModel: RegistroComidaViewModel,
-    alimentoViewModel: AlimentoViewModel
+    alimentoViewModel: AlimentoViewModel,
+    misAlimentosViewModel: MisAlimentosViewModel
+
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
@@ -120,6 +124,7 @@ fun HomeScreen(
                             showAlimentoBottomSheet = true
                         },
                         alimentoViewModel = alimentoViewModel,
+                        misAlimentosViewModel = misAlimentosViewModel,
                         onEliminarRegistro = { registro ->
                             registroComidaViewModel.eliminarRegistroComida(registro)
                         }
@@ -198,10 +203,15 @@ fun HomeScreen(
         AlimentoBottomSheet(
             onDismiss = { showAlimentoBottomSheet = false },
             onAlimentoSelected = { alimento, cantidad ->
-                registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado, false)
+                registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado)
                 showAlimentoBottomSheet = false
             },
-            viewModel = alimentoViewModel
+            onMiAlimentoSelected = { miAlimento, cantidad ->
+                registroComidaViewModel.agregarMiAlimento(miAlimento, cantidad, tipoComidaSeleccionado)
+                showAlimentoBottomSheet = false
+            },
+            alimentoViewModel = alimentoViewModel,
+            misAlimentosViewModel = misAlimentosViewModel
         )
     }
 }
@@ -212,13 +222,13 @@ fun ComidaSection(
     registros: List<RegistroComida>,
     onAddClick: () -> Unit,
     alimentoViewModel: AlimentoViewModel,
+    misAlimentosViewModel: MisAlimentosViewModel,
     onEliminarRegistro: (RegistroComida) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(text = tipoComida, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Lista de alimentos registrados
         registros.forEach { registro ->
             registro.alimentos.forEach { (alimentoId, cantidad) ->
                 RegistroComidaCardWrapper(
@@ -229,19 +239,27 @@ fun ComidaSection(
                     onEliminar = { onEliminarRegistro(registro) }
                 )
             }
+            registro.misAlimentos.forEach { (alimentoId, cantidad) ->
+                MiRegistroComidaCardWrapper(
+                    registroComida = registro,
+                    alimentoId = alimentoId,
+                    cantidad = cantidad,
+                    misAlimentosViewModel = misAlimentosViewModel,
+                    onEliminar = { onEliminarRegistro(registro) }
+                )
+            }
         }
-
-        // No se muestra ningún mensaje si no hay registros
 
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = onAddClick,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Agregar", color = Color.White)
+            Text("Agregar $tipoComida")
         }
     }
 }
+
 
 @Composable
 fun RegistroComidaCardWrapper(
@@ -251,14 +269,40 @@ fun RegistroComidaCardWrapper(
     alimentoViewModel: AlimentoViewModel,
     onEliminar: () -> Unit
 ) {
-    val alimento by produceState<Alimento?>(initialValue = null) {
-        value = alimentoViewModel.getAlimentoById(alimentoId)
+    var alimento by remember { mutableStateOf<Alimento?>(null) }
+
+    LaunchedEffect(alimentoId) {
+        alimento = alimentoViewModel.getAlimentoById(alimentoId)
     }
 
-    alimento?.let { alimentoNoNulo ->
+    alimento?.let {
         RegistroComidaCard(
             registroComida = registroComida,
-            alimento = alimentoNoNulo,
+            alimento = it,
+            cantidad = cantidad,
+            onEliminar = onEliminar
+        )
+    }
+}
+
+@Composable
+fun MiRegistroComidaCardWrapper(
+    registroComida: RegistroComida,
+    alimentoId: String,
+    cantidad: Float,
+    misAlimentosViewModel: MisAlimentosViewModel,
+    onEliminar: () -> Unit
+) {
+    var miAlimento by remember { mutableStateOf<MisAlimentos?>(null) }
+
+    LaunchedEffect(alimentoId) {
+        miAlimento = misAlimentosViewModel.getMiAlimentoById(alimentoId)
+    }
+
+    miAlimento?.let {
+        RegistroComidaCard(
+            registroComida = registroComida,
+            alimento = it,
             cantidad = cantidad,
             onEliminar = onEliminar
         )

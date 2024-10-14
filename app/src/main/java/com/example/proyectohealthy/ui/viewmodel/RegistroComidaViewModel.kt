@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.data.local.entity.RegistroComida
 import com.example.proyectohealthy.data.repository.RegistroComidaRepository
 import com.google.firebase.auth.FirebaseAuth
@@ -39,10 +40,6 @@ class RegistroComidaViewModel @Inject constructor(
         }
     }
 
-    private fun sanitizeKey(key: String): String {
-        return key.replace(Regex("[./#$\\[\\]]"), "_")
-    }
-
     fun setFechaSeleccionada(fecha: LocalDate) {
         _fechaSeleccionada.value = fecha
     }
@@ -56,39 +53,44 @@ class RegistroComidaViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("RegistroComidaViewModel", "Error al cargar registros: ${e.message}")
-                _registrosComidaDiarios.value = emptyMap()
             }
         }
     }
 
-    fun agregarAlimento(alimento: Alimento, cantidad: Float, tipoComida: String, esMiAlimento: Boolean) {
+    fun agregarAlimento(alimento: Alimento, cantidad: Float, tipoComida: String) {
         viewModelScope.launch {
             try {
                 val idPerfil = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
-                val sanitizedAlimentoId = sanitizeKey(alimento.id)
-                if (sanitizedAlimentoId.isBlank()) {
-                    Log.e("RegistroComidaViewModel", "ID de alimento vacío: ${alimento.nombre}")
-                    return@launch
-                }
-                val sanitizedTipoComida = sanitizeKey(tipoComida)
-
-                val alimentosMap = if (!esMiAlimento) mapOf(sanitizedAlimentoId to cantidad) else emptyMap()
-                val misAlimentosMap = if (esMiAlimento) mapOf(sanitizedAlimentoId to cantidad) else emptyMap()
-
                 val nuevoRegistro = RegistroComida(
-                    idPerfil = sanitizeKey(idPerfil),
+                    idPerfil = idPerfil,
                     fecha = _fechaSeleccionada.value,
-                    tipoComida = sanitizedTipoComida,
-                    alimentos = alimentosMap,
-                    misAlimentos = misAlimentosMap
+                    tipoComida = tipoComida,
+                    alimentos = mapOf(alimento.id to cantidad),
+                    misAlimentos = emptyMap()
                 )
-
-                Log.d("RegistroComidaViewModel", "Intentando agregar: $nuevoRegistro")
                 registroComidaRepository.createOrUpdateRegistroComida(nuevoRegistro)
-                Log.d("RegistroComidaViewModel", "Alimento agregado exitosamente")
                 cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
             } catch (e: Exception) {
-                Log.e("RegistroComidaViewModel", "Error al agregar alimento: ${e.message}", e)
+                Log.e("RegistroComidaViewModel", "Error al agregar alimento: ${e.message}")
+            }
+        }
+    }
+
+    fun agregarMiAlimento(miAlimento: MisAlimentos, cantidad: Float, tipoComida: String) {
+        viewModelScope.launch {
+            try {
+                val idPerfil = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
+                val nuevoRegistro = RegistroComida(
+                    idPerfil = idPerfil,
+                    fecha = _fechaSeleccionada.value,
+                    tipoComida = tipoComida,
+                    alimentos = emptyMap(),
+                    misAlimentos = mapOf(miAlimento.id to cantidad)
+                )
+                registroComidaRepository.createOrUpdateRegistroComida(nuevoRegistro)
+                cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
+            } catch (e: Exception) {
+                Log.e("RegistroComidaViewModel", "Error al agregar mi alimento: ${e.message}")
             }
         }
     }
@@ -97,7 +99,6 @@ class RegistroComidaViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 registroComidaRepository.deleteRegistroComida(registro.idPerfil, registro.id, registro.fecha)
-                Log.d("RegistroComidaViewModel", "Registro eliminado exitosamente")
                 cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
             } catch (e: Exception) {
                 Log.e("RegistroComidaViewModel", "Error al eliminar registro: ${e.message}")
