@@ -15,6 +15,7 @@ import com.example.proyectohealthy.data.local.entity.RegistroComida
 fun RegistroComidaCard(
     registroComida: RegistroComida,
     alimento: Alimento,
+    cantidad: Float,
     onEliminar: () -> Unit
 ) {
     Card(
@@ -29,12 +30,15 @@ fun RegistroComidaCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = alimento.nombre, style = MaterialTheme.typography.titleMedium)
-                Text(text = "Porción: ${registroComida.alimentos[alimento.id]} ${alimento.nombrePorcion}")
-                Text(text = "Calorías: ${(alimento.calorias * (registroComida.alimentos[alimento.id] ?: 0f)).toInt()}")
-                Text(text = "P: ${(alimento.proteinas * (registroComida.alimentos[alimento.id] ?: 0f)).toInt()}g | " +
-                        "C: ${(alimento.carbohidratos * (registroComida.alimentos[alimento.id] ?: 0f)).toInt()}g | " +
-                        "G: ${(alimento.grasas * (registroComida.alimentos[alimento.id] ?: 0f)).toInt()}g")
+                Text(text = alimento.nombre, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = "$cantidad ${alimento.nombrePorcion}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "${(alimento.calorias * cantidad).toInt()} kcal",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
             IconButton(onClick = onEliminar) {
                 Icon(Icons.Default.Close, contentDescription = "Eliminar")

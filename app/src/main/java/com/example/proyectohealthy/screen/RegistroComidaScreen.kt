@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
-import com.example.proyectohealthy.ui.components.BusquedaAlimentosDialog
 
 @Composable
 fun RegistroComidaScreen(
@@ -59,15 +58,5 @@ fun RegistroComidaScreen(
         }
     }
 
-    // Mostrar el diálogo de búsqueda cuando showBusquedaDialog es true
-    if (showBusquedaDialog) {
-        BusquedaAlimentosDialog(
-            onDismiss = { showBusquedaDialog = false },
-            onAlimentoSelected = { alimento, cantidad ->
-                viewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado)
-                showBusquedaDialog = false
-            },
-            viewModel = viewModel
-        )
-    }
+
 }

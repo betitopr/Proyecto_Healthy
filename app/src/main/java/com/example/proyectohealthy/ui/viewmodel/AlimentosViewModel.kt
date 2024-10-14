@@ -1,5 +1,6 @@
 package com.example.proyectohealthy.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Alimento
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.Date
 import javax.inject.Inject
 
@@ -43,10 +45,18 @@ class AlimentoViewModel @Inject constructor(
         }
     }
 
-    fun getAlimento(id: String) {
+    suspend fun getAlimentoById(id: String): Alimento? {
+        return alimentoRepository.getAlimentoById(id)
+    }
+
+    fun createAlimento(alimento: Alimento) {
         viewModelScope.launch {
-            alimentoRepository.getAlimentoFlow(id).collect {
-                _currentAlimento.value = it
+            try {
+                val newId = alimentoRepository.createOrUpdateAlimento(alimento)
+                // Aquí puedes manejar el éxito, por ejemplo, actualizar una lista de alimentos
+            } catch (e: Exception) {
+                // Manejar el error
+                Log.e("AlimentoViewModel", "Error al crear alimento: ${e.message}")
             }
         }
     }

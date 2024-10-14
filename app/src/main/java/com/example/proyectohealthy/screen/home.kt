@@ -1,6 +1,7 @@
 package com.example.proyectohealthy.screen
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,12 +24,14 @@ import com.example.proyectohealthy.components.CustomTopBar
 import com.example.proyectohealthy.components.DateSelector
 import com.example.proyectohealthy.components.IngresoAlimentoComponent
 import com.example.proyectohealthy.components.RegistroComidaCard
+import com.example.proyectohealthy.components.bottomsheets.AlimentoBottomSheet
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.RegistroComida
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
-import com.example.proyectohealthy.ui.components.BusquedaAlimentosDialog
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import java.time.LocalDate
+import java.util.Date
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,16 +43,15 @@ fun HomeScreen(
     alimentoViewModel: AlimentoViewModel
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
-    var showBusquedaDialog by remember { mutableStateOf(false) }
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
-
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-
-
+    var showAlimentoBottomSheet by remember { mutableStateOf(false) }
     var showIngresoAlimento by remember { mutableStateOf(false) }
-
+    val fechaSeleccionada by registroComidaViewModel.fechaSeleccionada.collectAsState()
     val registrosComidaDiarios by registroComidaViewModel.registrosComidaDiarios.collectAsState()
 
+    LaunchedEffect(fechaSeleccionada) {
+        registroComidaViewModel.cargarRegistrosComidaPorFecha(fechaSeleccionada)
+    }
 
     Scaffold(
         topBar = {
@@ -67,20 +69,20 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
         ) {
             item {
                 DateSelector(
-                    selectedDate = selectedDate,
+                    selectedDate = fechaSeleccionada,
                     onDateSelected = { newDate ->
-                        selectedDate = newDate
-                        //registroComidaViewModel.cargarRegistrosComidaPorFecha(newDate)
+                        registroComidaViewModel.setFechaSeleccionada(newDate)
                     }
                 )
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             item {
-                // Gráfico circular y nutrientes
+                // Gráfico circular y nutrientes (sin modificar)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -92,7 +94,6 @@ fun HomeScreen(
                             .size(100.dp)
                             .background(Color.Gray, shape = CircleShape)
                     ) {
-                        // Aquí va el gráfico circular
                         Text(
                             text = "Gráfico Circular",
                             modifier = Modifier.align(Alignment.Center),
@@ -106,64 +107,27 @@ fun HomeScreen(
                         Text(text = "Grasas: 30g")
                     }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            item {
-                // Buscador de comida
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Buscar comida") }
-                )
-            }
-
-            item {
-                Text(
-                    text = "Registro de Comidas",
-                    fontSize = 24.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            // Botones y registros para cada tipo de comida
             listOf("Desayuno", "Almuerzo", "Cena", "Snacks").forEach { tipoComida ->
                 item {
-                    Text(
-                        text = tipoComida,
-                        fontSize = 20.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    )
-                    Button(
-                        onClick = {
+                    ComidaSection(
+                        tipoComida = tipoComida,
+                        registros = registrosComidaDiarios[tipoComida] ?: emptyList(),
+                        onAddClick = {
                             tipoComidaSeleccionado = tipoComida
-                            showBusquedaDialog = true
+                            showAlimentoBottomSheet = true
                         },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "Agregar $tipoComida")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Default.Add, contentDescription = "Agregar")
-                    }
-                    // Mostrar los registros de comida para este tipo
-                    registrosComidaDiarios[tipoComida]?.forEach { registro ->
-                        registro.alimentos.forEach { (alimentoId, cantidad) ->
-                            // Aquí deberías obtener el Alimento correspondiente al alimentoId
-                            val alimentoDummy = Alimento(id = alimentoId, nombre = "Alimento", calorias = 100, proteinas = 10f, carbohidratos = 20f, grasas = 5f, nombrePorcion = "unidad")
-                            RegistroComidaCard(
-                                registroComida = registro,
-                                alimento = alimentoDummy,
-                                onEliminar = { registroComidaViewModel.eliminarRegistroComida(registro) }
-                            )
+                        alimentoViewModel = alimentoViewModel,
+                        onEliminarRegistro = { registro ->
+                            registroComidaViewModel.eliminarRegistroComida(registro)
                         }
-                    }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+
 
             // Sección de ejercicios
             item {
@@ -209,6 +173,7 @@ fun HomeScreen(
                 }
             }
 
+            // Sección para agregar nuevos alimentos
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -229,14 +194,73 @@ fun HomeScreen(
     }
 
     // Diálogo de búsqueda de alimentos
-    if (showBusquedaDialog) {
-        BusquedaAlimentosDialog(
-            onDismiss = { showBusquedaDialog = false },
+    if (showAlimentoBottomSheet) {
+        AlimentoBottomSheet(
+            onDismiss = { showAlimentoBottomSheet = false },
             onAlimentoSelected = { alimento, cantidad ->
-                registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado)
-                showBusquedaDialog = false
+                registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado, false)
+                showAlimentoBottomSheet = false
             },
-            viewModel = registroComidaViewModel
+            viewModel = alimentoViewModel
+        )
+    }
+}
+
+@Composable
+fun ComidaSection(
+    tipoComida: String,
+    registros: List<RegistroComida>,
+    onAddClick: () -> Unit,
+    alimentoViewModel: AlimentoViewModel,
+    onEliminarRegistro: (RegistroComida) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = tipoComida, style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Lista de alimentos registrados
+        registros.forEach { registro ->
+            registro.alimentos.forEach { (alimentoId, cantidad) ->
+                RegistroComidaCardWrapper(
+                    registroComida = registro,
+                    alimentoId = alimentoId,
+                    cantidad = cantidad,
+                    alimentoViewModel = alimentoViewModel,
+                    onEliminar = { onEliminarRegistro(registro) }
+                )
+            }
+        }
+
+        // No se muestra ningún mensaje si no hay registros
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onAddClick,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Agregar", color = Color.White)
+        }
+    }
+}
+
+@Composable
+fun RegistroComidaCardWrapper(
+    registroComida: RegistroComida,
+    alimentoId: String,
+    cantidad: Float,
+    alimentoViewModel: AlimentoViewModel,
+    onEliminar: () -> Unit
+) {
+    val alimento by produceState<Alimento?>(initialValue = null) {
+        value = alimentoViewModel.getAlimentoById(alimentoId)
+    }
+
+    alimento?.let { alimentoNoNulo ->
+        RegistroComidaCard(
+            registroComida = registroComida,
+            alimento = alimentoNoNulo,
+            cantidad = cantidad,
+            onEliminar = onEliminar
         )
     }
 }

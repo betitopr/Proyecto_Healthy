@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.screen
+/*package com.example.proyectohealthy.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -46,4 +46,4 @@ fun DetalleAlimentoDialog(
             }
         }
     )
-}
+}*/
