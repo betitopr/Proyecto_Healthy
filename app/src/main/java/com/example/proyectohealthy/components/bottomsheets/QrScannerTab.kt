@@ -28,7 +28,9 @@ fun QrScannerTab(
 
     when (val state = uiState) {
         is ScannerViewModel.UiState.Loading -> CircularProgressIndicator()
+        is ScannerViewModel.UiState.Error -> Text((uiState as ScannerViewModel.UiState.Error).message, color = Color.Red)
         is ScannerViewModel.UiState.Success -> {
+
             val product = state.product
             LaunchedEffect(product) {
                 val miAlimento = MisAlimentos(
