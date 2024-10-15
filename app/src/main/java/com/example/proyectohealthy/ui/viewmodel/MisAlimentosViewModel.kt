@@ -54,18 +54,6 @@ class MisAlimentosViewModel @Inject constructor(
         return misAlimentosRepository.getMiAlimentoById(idPerfil, id)
     }
 
-//    fun getMiAlimentoById(id: String) {
-//        viewModelScope.launch {
-//            try {
-//                val idPerfil = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
-//                val miAlimento = misAlimentosRepository.getMiAlimentoById(idPerfil, id)
-//                _currentMiAlimento.value = miAlimento
-//            } catch (e: Exception) {
-//                _error.value = "Error al obtener mi alimento: ${e.message}"
-//            }
-//        }
-//    }
-
     fun deleteMiAlimento(id: String) {
         viewModelScope.launch {
             try {

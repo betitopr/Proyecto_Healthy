@@ -211,7 +211,8 @@ fun HomeScreen(
                 showAlimentoBottomSheet = false
             },
             alimentoViewModel = alimentoViewModel,
-            misAlimentosViewModel = misAlimentosViewModel
+            misAlimentosViewModel = misAlimentosViewModel,
+            tipoComidaSeleccionado = tipoComidaSeleccionado
         )
     }
 }

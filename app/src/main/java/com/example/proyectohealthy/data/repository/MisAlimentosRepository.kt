@@ -28,6 +28,8 @@ class MisAlimentosRepository @Inject constructor(
         return key
     }
 
+
+
     suspend fun getMiAlimentoById(idPerfil: String, id: String): MisAlimentos? {
         return try {
             val snapshot = misAlimentosRef.child(idPerfil).child(id).get().await()
@@ -52,6 +54,8 @@ class MisAlimentosRepository @Inject constructor(
         })
         awaitClose { misAlimentosRef.child(idPerfil).removeEventListener(listener) }
     }
+
+
 
     suspend fun deleteMiAlimento(idPerfil: String, id: String) {
         misAlimentosRef.child(idPerfil).child(id).removeValue().await()

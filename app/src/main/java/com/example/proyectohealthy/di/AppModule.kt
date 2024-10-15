@@ -1,19 +1,37 @@
 package com.example.proyectohealthy.di
 
+import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
+import com.example.proyectohealthy.data.remote.OpenFoodFactsApi
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.example.proyectohealthy.data.repository.*
+import com.example.proyectohealthy.util.RetrofitClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    // Providers para Scanner
+    @Provides
+    @Singleton
+    fun provideOpenFoodFactsApi(): OpenFoodFactsApi {
+        return RetrofitClient.openFoodFactsApi
+    }
+
+
+
 
     // Firebase providers
     @Provides
@@ -55,6 +73,7 @@ object AppModule {
     fun provideRecetaFavoritaRepository(database: FirebaseDatabase): RecetaFavoritaRepository =
         RecetaFavoritaRepository(database)
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Provides
     @Singleton
     fun provideRegistroComidaRepository(database: FirebaseDatabase): RegistroComidaRepository =
