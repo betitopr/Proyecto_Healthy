@@ -79,6 +79,13 @@ class EjercicioViewModel @Inject constructor(
         }
     }
 
+    fun calcularCaloriasQuemadas(): Int {
+        return registrosEjercicio.value.sumOf { registro ->
+            val ejercicio = ejercicios.value.find { it.id == registro.idEjercicio }
+            ejercicio?.let { it.caloriasPorMinuto * registro.duracionMinutos } ?: 0
+        }
+    }
+
     fun eliminarRegistroEjercicio(registroEjercicio: RegistroEjercicio) {
         viewModelScope.launch {
             ejercicioRepository.deleteRegistroEjercicio(registroEjercicio.idPerfil, registroEjercicio.id)

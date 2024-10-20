@@ -50,7 +50,7 @@ class EjercicioRepository @Inject constructor(
         val ejercicioMap = ejercicio.toMap()
         ejerciciosRef.child(key).setValue(ejercicioMap).await()
     }
-    
+
     private fun Ejercicio.toMap(): Map<String, Any?> {
         return mapOf(
             "id" to id,

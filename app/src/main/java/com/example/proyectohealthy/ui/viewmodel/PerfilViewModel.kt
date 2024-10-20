@@ -20,6 +20,9 @@ class PerfilViewModel @Inject constructor(
     private val _currentPerfil = MutableStateFlow<Perfil?>(null)
     val currentPerfil = _currentPerfil.asStateFlow()
 
+    private val _metasNutricionales = MutableStateFlow<MetasNutricionales?>(null)
+    val metasNutricionales = _metasNutricionales.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
@@ -31,6 +34,14 @@ class PerfilViewModel @Inject constructor(
 
     init {
         observeAuthChanges()
+        viewModelScope.launch {
+            auth.currentUser?.let { user ->
+                perfilRepository.getPerfilFlow(user.uid).collect { perfil ->
+                    _currentPerfil.value = perfil
+                    calcularMetasNutricionales(perfil)
+                }
+            }
+        }
     }
 
     private fun observeAuthChanges() {
@@ -167,6 +178,43 @@ class PerfilViewModel @Inject constructor(
         perfilRepository.addAlimentoReciente(uid, alimentoId)
     }
 
+    private fun calcularMetasNutricionales(perfil: Perfil?) {
+        perfil?.let {
+            val tmb = when (it.genero) {
+                "Masculino" -> 88.362 + (13.397 * it.pesoActual) + (4.799 * it.altura) - (5.677 * it.edad)
+                "Femenino" -> 447.593 + (9.247 * it.pesoActual) + (3.098 * it.altura) - (4.330 * it.edad)
+                else -> 0.0
+            }
+
+            val factorActividad = when (it.nivelActividad) {
+                "Sedentario" -> 1.2
+                "Ligeramente activo" -> 1.375
+                "Moderadamente activo" -> 1.55
+                "Muy activo" -> 1.725
+                "Extra activo" -> 1.9
+                else -> 1.2
+            }
+
+            var caloriasNecesarias = tmb * factorActividad
+
+            when (it.objetivo) {
+                "Perder peso" -> caloriasNecesarias -= 500
+                "Ganar peso" -> caloriasNecesarias += 500
+            }
+
+            val proteinas = (caloriasNecesarias * 0.3) / 4
+            val grasas = (caloriasNecesarias * 0.3) / 9
+            val carbohidratos = (caloriasNecesarias * 0.4) / 4
+
+            _metasNutricionales.value = MetasNutricionales(
+                calorias = caloriasNecesarias.toInt(),
+                proteinas = proteinas.toInt(),
+                grasas = grasas.toInt(),
+                carbohidratos = carbohidratos.toInt()
+            )
+        }
+    }
+
     fun clearError() {
         _error.value = null
     }
@@ -175,3 +223,10 @@ class PerfilViewModel @Inject constructor(
         clearCurrentPerfil()
     }
 }
+
+data class MetasNutricionales(
+    val calorias: Int,
+    val proteinas: Int,
+    val grasas: Int,
+    val carbohidratos: Int
+)

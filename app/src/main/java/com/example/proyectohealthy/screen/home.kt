@@ -29,6 +29,7 @@ import com.example.proyectohealthy.components.IngresoAlimentoComponent
 import com.example.proyectohealthy.components.RegistroComidaCard
 import com.example.proyectohealthy.components.bottomsheets.AlimentoBottomSheet
 import com.example.proyectohealthy.components.homeComponents.ConsumoAguaSection
+import com.example.proyectohealthy.components.homeComponents.ProgresoNutricionalComponent
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.Ejercicio
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
@@ -58,6 +59,10 @@ fun HomeScreen(
 
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
+
+    val metasNutricionales by perfilViewModel.metasNutricionales.collectAsState()
+    val progresoNutricional by registroComidaViewModel.progresoNutricional.collectAsState()
+
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
     var showAlimentoBottomSheet by remember { mutableStateOf(false) }
     var showEjercicioBottomSheet by remember { mutableStateOf(false) }
@@ -72,7 +77,11 @@ fun HomeScreen(
     LaunchedEffect(fechaSeleccionada) {
         registroComidaViewModel.cargarRegistrosComidaPorFecha(fechaSeleccionada)
         consumoAguaViewModel.setFechaSeleccionada(fechaSeleccionada)
-        ejercicioViewModel.cargarRegistrosEjercicioPorFecha(fechaSeleccionada)
+        ejercicioViewModel.setFechaSeleccionada(fechaSeleccionada)
+
+        // Actualizar calorías quemadas en RegistroComidaViewModel
+        val caloriasQuemadas = ejercicioViewModel.calcularCaloriasQuemadas()
+        registroComidaViewModel.actualizarCaloriasQuemadas(caloriasQuemadas)
     }
 
     Scaffold(
@@ -105,30 +114,8 @@ fun HomeScreen(
             }
 
             item {
-                // Gráfico circular y nutrientes (sin modificar)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .background(Color.Gray, shape = CircleShape)
-                    ) {
-                        Text(
-                            text = "Gráfico Circular",
-                            modifier = Modifier.align(Alignment.Center),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(text = "Proteínas: 50g")
-                        Text(text = "Carbohidratos: 100g")
-                        Text(text = "Grasas: 30g")
-                    }
+                metasNutricionales?.let { metas ->
+                    ProgresoNutricionalComponent(progresoNutricional, metas)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -394,6 +381,7 @@ fun MiRegistroComidaCardWrapper(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun IngresoEjercicioComponent(viewModel: EjercicioViewModel) {
     var nombre by remember { mutableStateOf("") }
