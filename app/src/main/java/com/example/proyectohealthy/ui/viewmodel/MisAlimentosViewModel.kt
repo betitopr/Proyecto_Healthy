@@ -28,11 +28,17 @@ class MisAlimentosViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
+        loadMisAlimentos()
+    }
+
+    private fun loadMisAlimentos() {
         viewModelScope.launch {
             auth.currentUser?.uid?.let { idPerfil ->
-                misAlimentosRepository.getMisAlimentosFlow(idPerfil).collect {
-                    _misAlimentos.value = it
+                misAlimentosRepository.getMisAlimentosFlow(idPerfil).collect { alimentos ->
+                    _misAlimentos.value = alimentos.filter { it.idPerfil == idPerfil }
                 }
+            } ?: run {
+                _error.value = "Usuario no autenticado"
             }
         }
     }

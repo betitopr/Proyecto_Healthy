@@ -25,12 +25,14 @@ import com.example.proyectohealthy.components.DateSelector
 import com.example.proyectohealthy.components.IngresoAlimentoComponent
 import com.example.proyectohealthy.components.RegistroComidaCard
 import com.example.proyectohealthy.components.bottomsheets.AlimentoBottomSheet
+import com.example.proyectohealthy.components.homeComponents.ConsumoAguaSection
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.data.local.entity.RegistroComida
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
+import com.example.proyectohealthy.ui.viewmodel.ConsumoAguaViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import java.time.LocalDate
 import java.util.Date
@@ -43,7 +45,8 @@ fun HomeScreen(
     perfilViewModel: PerfilViewModel,
     registroComidaViewModel: RegistroComidaViewModel,
     alimentoViewModel: AlimentoViewModel,
-    misAlimentosViewModel: MisAlimentosViewModel
+    misAlimentosViewModel: MisAlimentosViewModel,
+    consumoAguaViewModel: ConsumoAguaViewModel
 
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
@@ -55,6 +58,7 @@ fun HomeScreen(
 
     LaunchedEffect(fechaSeleccionada) {
         registroComidaViewModel.cargarRegistrosComidaPorFecha(fechaSeleccionada)
+        consumoAguaViewModel.setFechaSeleccionada(fechaSeleccionada)
     }
 
     Scaffold(
@@ -155,27 +159,8 @@ fun HomeScreen(
 
             // Indicador de agua
             item {
-                Text(
-                    text = "Consumo de Agua",
-                    fontSize = 20.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    repeat(8) {
-                        Button(
-                            onClick = { /* Marcar vaso */ },
-                            modifier = Modifier.size(50.dp),
-                            shape = CircleShape
-                        ) {
-                            Text(text = "${it + 1}")
-                        }
-                    }
-                }
+                ConsumoAguaSection(viewModel = consumoAguaViewModel)
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Sección para agregar nuevos alimentos
