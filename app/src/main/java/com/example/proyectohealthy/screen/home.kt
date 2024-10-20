@@ -7,13 +7,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,15 +30,19 @@ import com.example.proyectohealthy.components.RegistroComidaCard
 import com.example.proyectohealthy.components.bottomsheets.AlimentoBottomSheet
 import com.example.proyectohealthy.components.homeComponents.ConsumoAguaSection
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.Ejercicio
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.data.local.entity.RegistroComida
+import com.example.proyectohealthy.data.local.entity.RegistroEjercicio
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.ConsumoAguaViewModel
+import com.example.proyectohealthy.ui.viewmodel.EjercicioViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import java.time.LocalDate
 import java.util.Date
+import com.example.proyectohealthy.components.bottomsheets.EjercicioBottomSheet as EjercicioBottomSheet1
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,19 +53,26 @@ fun HomeScreen(
     registroComidaViewModel: RegistroComidaViewModel,
     alimentoViewModel: AlimentoViewModel,
     misAlimentosViewModel: MisAlimentosViewModel,
-    consumoAguaViewModel: ConsumoAguaViewModel
+    consumoAguaViewModel: ConsumoAguaViewModel,
+    ejercicioViewModel: EjercicioViewModel
 
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
     var showAlimentoBottomSheet by remember { mutableStateOf(false) }
+    var showEjercicioBottomSheet by remember { mutableStateOf(false) }
     var showIngresoAlimento by remember { mutableStateOf(false) }
     val fechaSeleccionada by registroComidaViewModel.fechaSeleccionada.collectAsState()
     val registrosComidaDiarios by registroComidaViewModel.registrosComidaDiarios.collectAsState()
+    val registrosEjercicio by ejercicioViewModel.registrosEjercicio.collectAsState()
+    val ejercicios by ejercicioViewModel.ejercicios.collectAsState()
+
+    var showIngresoEjercicio by remember { mutableStateOf(false) }
 
     LaunchedEffect(fechaSeleccionada) {
         registroComidaViewModel.cargarRegistrosComidaPorFecha(fechaSeleccionada)
         consumoAguaViewModel.setFechaSeleccionada(fechaSeleccionada)
+        ejercicioViewModel.cargarRegistrosEjercicioPorFecha(fechaSeleccionada)
     }
 
     Scaffold(
@@ -84,6 +98,7 @@ fun HomeScreen(
                     selectedDate = fechaSeleccionada,
                     onDateSelected = { newDate ->
                         registroComidaViewModel.setFechaSeleccionada(newDate)
+                        ejercicioViewModel.setFechaSeleccionada(newDate)
                     }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -140,21 +155,15 @@ fun HomeScreen(
 
             // Sección de ejercicios
             item {
-                Text(
-                    text = "Ejercicios",
-                    fontSize = 20.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                EjercicioSection(
+                    registros = registrosEjercicio,
+                    ejercicios = ejercicios,
+                    onAddClick = { showEjercicioBottomSheet = true },
+                    onEliminarRegistro = { registro ->
+                        ejercicioViewModel.eliminarRegistroEjercicio(registro)
+                    }
                 )
-                Button(
-                    onClick = { /* Agregar ejercicios */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Agregar Ejercicio")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.Add, contentDescription = "Agregar")
-                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Indicador de agua
@@ -174,12 +183,29 @@ fun HomeScreen(
                 }
             }
 
+            // Nueva sección para agregar ejercicios
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { showIngresoEjercicio = !showIngresoEjercicio },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (showIngresoEjercicio) "Ocultar Ingreso de Ejercicios" else "Mostrar Ingreso de Ejercicios")
+                }
+                if (showIngresoEjercicio) {
+                    IngresoEjercicioComponent(viewModel = ejercicioViewModel)
+                }
+            }
+
             // Formulario de ingreso de alimentos
             if (showIngresoAlimento) {
                 item {
                     IngresoAlimentoComponent(viewModel = alimentoViewModel)
                 }
             }
+
+
+
         }
     }
 
@@ -199,6 +225,79 @@ fun HomeScreen(
             misAlimentosViewModel = misAlimentosViewModel,
             tipoComidaSeleccionado = tipoComidaSeleccionado
         )
+    }
+    // Nuevo BottomSheet para agregar ejercicio
+
+    if (showEjercicioBottomSheet) {
+        EjercicioBottomSheet1(
+            ejercicios = ejercicios,
+            onDismiss = { showEjercicioBottomSheet = false },
+            onEjercicioSelected = { idEjercicio, duracion ->
+                ejercicioViewModel.agregarRegistroEjercicio(idEjercicio, duracion)
+                showEjercicioBottomSheet = false
+            }
+        )
+    }
+}
+
+@Composable
+fun EjercicioSection(
+    registros: List<RegistroEjercicio>,
+    ejercicios: List<Ejercicio>,
+    onAddClick: () -> Unit,
+    onEliminarRegistro: (RegistroEjercicio) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(text = "Ejercicios", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        registros.forEach { registro ->
+            val ejercicio = ejercicios.find { it.id == registro.idEjercicio }
+            if (ejercicio != null) {
+                EjercicioItem(
+                    registroEjercicio = registro,
+                    ejercicio = ejercicio,
+                    onEliminar = { onEliminarRegistro(registro) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onAddClick,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Agregar Ejercicio")
+        }
+    }
+}
+
+@Composable
+fun EjercicioItem(
+    registroEjercicio: RegistroEjercicio,
+    ejercicio: Ejercicio,
+    onEliminar: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = ejercicio.nombre, style = MaterialTheme.typography.titleMedium)
+                Text(text = "Duración: ${registroEjercicio.duracionMinutos} minutos")
+                Text(text = "Calorías quemadas: ${registroEjercicio.duracionMinutos * ejercicio.caloriasPorMinuto}")
+            }
+            IconButton(onClick = onEliminar) {
+                Icon(Icons.Default.Close, contentDescription = "Eliminar")
+            }
+        }
     }
 }
 
@@ -292,5 +391,50 @@ fun MiRegistroComidaCardWrapper(
             cantidad = cantidad,
             onEliminar = onEliminar
         )
+    }
+}
+
+@Composable
+fun IngresoEjercicioComponent(viewModel: EjercicioViewModel) {
+    var nombre by remember { mutableStateOf("") }
+    var caloriasPorMinuto by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Ingresar Nuevo Ejercicio", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = nombre,
+            onValueChange = { nombre = it },
+            label = { Text("Nombre del ejercicio") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = caloriasPorMinuto,
+            onValueChange = { caloriasPorMinuto = it },
+            label = { Text("Calorías por minuto") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                if (nombre.isNotBlank() && caloriasPorMinuto.isNotBlank()) {
+                    val nuevoEjercicio = Ejercicio(
+                        nombre = nombre,
+                        caloriasPorMinuto = caloriasPorMinuto.toIntOrNull() ?: 0
+                    )
+                    viewModel.crearEjercicio(nuevoEjercicio)
+                    nombre = ""
+                    caloriasPorMinuto = ""
+                }
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Agregar Ejercicio")
+        }
     }
 }
