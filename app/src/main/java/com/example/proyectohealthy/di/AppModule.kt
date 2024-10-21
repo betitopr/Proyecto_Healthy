@@ -18,6 +18,8 @@ import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -83,4 +85,13 @@ object AppModule {
     @Singleton
     fun provideConsumoAguaRepository(database: FirebaseDatabase): ConsumoAguaRepository =
         ConsumoAguaRepository(database)
+
+    //teams
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
 }

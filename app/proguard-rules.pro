@@ -19,3 +19,14 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Keep all constructors for com.google.firebase.Timestamp
+-keepclassmembers class com.google.firebase.Timestamp {
+    public <init>(long, int);
+    public <init>(long);
+}
+
+# Keep custom class TeamPost with all its members and constructors
+-keepclassmembers class com.example.proyectohealthy.model.TeamPost {
+    public <init>(...);
+}

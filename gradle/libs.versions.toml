@@ -23,6 +23,7 @@ firebaseDatabase = "21.0.0"
 firebaseDatabaseKtx = "21.0.0"
 playServicesBasement = "18.4.0"
 playServicesCodeScanner = "16.1.0"
+material = "1.12.0"
 
 [libraries]
 #Libreria de Zxing
@@ -54,6 +55,7 @@ firebase-database = { group = "com.google.firebase", name = "firebase-database",
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 play-services-basement = { group = "com.google.android.gms", name = "play-services-basement", version.ref = "playServicesBasement" }
 play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "playServicesCodeScanner" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 
 [plugins]

@@ -7,4 +7,17 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!--nuevos colores necesarios para la trama-->
+    <color name="lightBackground">#F5F5F5</color>
+    <color name="darkText">#212121</color>
+    <color name="grayText">#757575</color>
+    <color name="lightText">#FFFFFF</color>
+    <color name="light_gray">#D3D3D3</color>
+    <color name="cardStrokeColor">#DDDDDD</color>
+    <color name="titleTextColor">#000000</color>
+    <color name="contentTextColor">#666666</color>
+
+    <!--botones-->
+    <color name="accentColor">#FF5722</color> <!--naranjoso(solo de prueba)-->
 </resources>

@@ -2,6 +2,9 @@ buildscript {
 
     dependencies {
         classpath("com.google.gms:google-services:4.4.2")
+        //mío
+        classpath("androidx.navigation:navigation-safe-args-gradle-plugin:2.7.6")
+
     }
 }
 plugins {
