@@ -1,5 +1,7 @@
 package com.example.proyectohealthy.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -18,6 +20,7 @@ import com.example.proyectohealthy.screen.TeamsScreen//teams
 import com.example.proyectohealthy.screen.splash.SplashScreen
 import com.example.proyectohealthy.ui.viewmodel.*
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val authViewModel: AuthViewModel = hiltViewModel()
@@ -26,6 +29,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val registroComidaViewModel: RegistroComidaViewModel = hiltViewModel()
     val alimentoViewModel: AlimentoViewModel = hiltViewModel()
     val misAlimentosViewModel: MisAlimentosViewModel = hiltViewModel()
+    val consumoAguaViewModel: ConsumoAguaViewModel = hiltViewModel()
+    val ejercicioViewModel: EjercicioViewModel = hiltViewModel()
 
 
     val authState by authViewModel.authState.collectAsState()
@@ -108,7 +113,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 perfilViewModel = perfilViewModel,
                 registroComidaViewModel = registroComidaViewModel,
                 alimentoViewModel = alimentoViewModel,
-                misAlimentosViewModel = misAlimentosViewModel
+                misAlimentosViewModel = misAlimentosViewModel,
+                consumoAguaViewModel = consumoAguaViewModel,
+                ejercicioViewModel = ejercicioViewModel
             )
         }
         composable("profile") {
