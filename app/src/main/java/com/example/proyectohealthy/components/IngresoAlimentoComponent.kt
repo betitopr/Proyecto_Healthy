@@ -9,19 +9,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
+import com.example.proyectohealthy.util.Constants
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IngresoAlimentoComponent(viewModel: AlimentoViewModel) {
     var nombre by remember { mutableStateOf("") }
     var marca by remember { mutableStateOf("") }
-    var categoria by remember { mutableStateOf("") }
+    var categoriaSeleccionada by remember { mutableStateOf(Constants.CATEGORIAS_ALIMENTOS[0]) }
     var nombrePorcion by remember { mutableStateOf("") }
     var pesoPorcion by remember { mutableStateOf("") }
     var calorias by remember { mutableStateOf("") }
     var proteinas by remember { mutableStateOf("") }
     var carbohidratos by remember { mutableStateOf("") }
     var grasas by remember { mutableStateOf("") }
+    var expandedCategoria by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text("Ingresar Nuevo Alimento", style = MaterialTheme.typography.titleLarge)
@@ -43,12 +46,36 @@ fun IngresoAlimentoComponent(viewModel: AlimentoViewModel) {
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = categoria,
-            onValueChange = { categoria = it },
-            label = { Text("Categoría") },
+        ExposedDropdownMenuBox(
+            expanded = expandedCategoria,
+            onExpandedChange = { expandedCategoria = it },
             modifier = Modifier.fillMaxWidth()
-        )
+        ) {
+            OutlinedTextField(
+                value = categoriaSeleccionada,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Categoría") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expandedCategoria,
+                onDismissRequest = { expandedCategoria = false }
+            ) {
+                Constants.CATEGORIAS_ALIMENTOS.forEach { categoria ->
+                    DropdownMenuItem(
+                        text = { Text(categoria) },
+                        onClick = {
+                            categoriaSeleccionada = categoria
+                            expandedCategoria = false
+                        }
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -109,7 +136,7 @@ fun IngresoAlimentoComponent(viewModel: AlimentoViewModel) {
                 val nuevoAlimento = Alimento(
                     nombre = nombre,
                     marca = marca,
-                    categoria = categoria,
+                    categoria = categoriaSeleccionada,
                     nombrePorcion = nombrePorcion,
                     pesoPorcion = pesoPorcion.toFloatOrNull() ?: 0f,
                     calorias = calorias.toIntOrNull() ?: 0,
@@ -122,7 +149,7 @@ fun IngresoAlimentoComponent(viewModel: AlimentoViewModel) {
                 // Limpiar campos después de agregar
                 nombre = ""
                 marca = ""
-                categoria = ""
+                categoriaSeleccionada = ""
                 nombrePorcion = ""
                 pesoPorcion = ""
                 calorias = ""

@@ -21,8 +21,8 @@ import com.journeyapps.barcodescanner.ScanOptions
 @Composable
 fun AlimentoBottomSheet(
     onDismiss: () -> Unit,
-    onAlimentoSelected: (Alimento, Float) -> Unit,
-    onMiAlimentoSelected: (MisAlimentos, Float) -> Unit,
+    onAlimentoSelected: (Alimento, Float, String) -> Unit, // Añadido parámetro String para tipo de comida
+    onMiAlimentoSelected: (MisAlimentos, Float, String) -> Unit, // Añadido parámetro String para tipo de comida
     alimentoViewModel: AlimentoViewModel,
     misAlimentosViewModel: MisAlimentosViewModel,
     scannerViewModel: ScannerViewModel = hiltViewModel(),
@@ -119,18 +119,21 @@ fun AlimentoBottomSheet(
         when (alimentoSeleccionado) {
             is Alimento -> DetalleAlimentoBottomSheet(
                 alimento = alimentoSeleccionado as Alimento,
+                tipoComidaInicial = tipoComidaSeleccionado,
                 onDismiss = { showDetalleBottomSheet = false },
-                onConfirm = { cantidad ->
-                    onAlimentoSelected(alimentoSeleccionado as Alimento, cantidad)
+                onConfirm = { cantidad, tipoComida ->
+                    onAlimentoSelected(alimentoSeleccionado as Alimento, cantidad, tipoComida)
                     showDetalleBottomSheet = false
                     onDismiss()
                 }
             )
+
             is MisAlimentos -> DetalleMiAlimentoBottomSheet(
                 miAlimento = alimentoSeleccionado as MisAlimentos,
+                tipoComidaInicial = tipoComidaSeleccionado,
                 onDismiss = { showDetalleBottomSheet = false },
-                onConfirm = { cantidad ->
-                    onMiAlimentoSelected(alimentoSeleccionado as MisAlimentos, cantidad)
+                onConfirm = { cantidad, tipoComida ->
+                    onMiAlimentoSelected(alimentoSeleccionado as MisAlimentos, cantidad, tipoComida)
                     showDetalleBottomSheet = false
                     onDismiss()
                 }

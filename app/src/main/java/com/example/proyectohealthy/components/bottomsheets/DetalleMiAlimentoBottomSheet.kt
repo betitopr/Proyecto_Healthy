@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -20,10 +22,15 @@ import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 @Composable
 fun DetalleMiAlimentoBottomSheet(
     miAlimento: MisAlimentos,
+    tipoComidaInicial: String,
     onDismiss: () -> Unit,
-    onConfirm: (Float) -> Unit
+    onConfirm: (Float, String) -> Unit
 ) {
     var cantidad by remember { mutableStateOf("1") }
+    var tipoComidaSeleccionado by remember { mutableStateOf(tipoComidaInicial) }
+    var showTipoComidaMenu by remember { mutableStateOf(false) }
+
+    val tiposComida = listOf("Desayuno", "Almuerzo", "Cena", "Snacks")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -44,12 +51,12 @@ fun DetalleMiAlimentoBottomSheet(
             Text("Proteínas: ${miAlimento.proteinas}g")
             Text("Carbohidratos: ${miAlimento.carbohidratos}g")
             Text("Grasas: ${miAlimento.grasas}g")
-            //Text("Grasas Saturadas: ${miAlimento.grasasSaturadas}g")
-            //Text("Grasas Trans: ${miAlimento.grasasTrans}g")
             Text("Sodio: ${miAlimento.sodio}mg")
             Text("Fibra: ${miAlimento.fibra}g")
             Text("Azúcares: ${miAlimento.azucares}g")
+
             Spacer(modifier = Modifier.height(12.dp))
+
             OutlinedTextField(
                 value = cantidad,
                 onValueChange = { cantidad = it },
@@ -57,7 +64,9 @@ fun DetalleMiAlimentoBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+
             Spacer(modifier = Modifier.height(4.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -67,12 +76,41 @@ fun DetalleMiAlimentoBottomSheet(
                 TextButton(onClick = onDismiss) {
                     Text("Cancelar")
                 }
-                Button(
-                    onClick = {
-                        cantidad.toFloatOrNull()?.let { onConfirm(it) }
+
+                // Botón con menú desplegable para tipo de comida
+                Box {
+                    Button(
+                        onClick = {
+                            showTipoComidaMenu = true
+                        }
+                    ) {
+                        Row {
+                            Text("Agregar $tipoComidaSeleccionado")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Seleccionar tipo de comida"
+                            )
+                        }
                     }
-                ) {
-                    Text("Agregar")
+
+                    DropdownMenu(
+                        expanded = showTipoComidaMenu,
+                        onDismissRequest = { showTipoComidaMenu = false }
+                    ) {
+                        tiposComida.forEach { tipo ->
+                            DropdownMenuItem(
+                                text = { Text("Agregar $tipo") },
+                                onClick = {
+                                    tipoComidaSeleccionado = tipo
+                                    showTipoComidaMenu = false
+                                    cantidad.toFloatOrNull()?.let {
+                                        onConfirm(it, tipo)
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

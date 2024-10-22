@@ -16,6 +16,7 @@ import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
+import com.example.proyectohealthy.util.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,13 +27,14 @@ fun AgregarMiAlimentoBottomSheet(
 ) {
     var nombre by remember { mutableStateOf("") }
     var marca by remember { mutableStateOf("") }
-    var categoria by remember { mutableStateOf("") }
+    var categoriaSeleccionada by remember { mutableStateOf(Constants.CATEGORIAS_ALIMENTOS[0]) }
     var nombrePorcion by remember { mutableStateOf("") }
     var pesoPorcion by remember { mutableStateOf("") }
     var calorias by remember { mutableStateOf("") }
     var proteinas by remember { mutableStateOf("") }
     var grasas by remember { mutableStateOf("") }
     var carbohidratos by remember { mutableStateOf("") }
+    var expandedCategoria by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -60,12 +62,36 @@ fun AgregarMiAlimentoBottomSheet(
                 label = { Text("Marca") },
                 modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = categoria,
-                onValueChange = { categoria = it },
-                label = { Text("Categoría") },
+            ExposedDropdownMenuBox(
+                expanded = expandedCategoria,
+                onExpandedChange = { expandedCategoria = it },
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                OutlinedTextField(
+                    value = categoriaSeleccionada,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedCategoria,
+                    onDismissRequest = { expandedCategoria = false }
+                ) {
+                    Constants.CATEGORIAS_ALIMENTOS.forEach { categoria ->
+                        DropdownMenuItem(
+                            text = { Text(categoria) },
+                            onClick = {
+                                categoriaSeleccionada = categoria
+                                expandedCategoria = false
+                            }
+                        )
+                    }
+                }
+            }
             OutlinedTextField(
                 value = nombrePorcion,
                 onValueChange = { nombrePorcion = it },
@@ -121,7 +147,7 @@ fun AgregarMiAlimentoBottomSheet(
                         val nuevoAlimento = MisAlimentos(
                             nombre = nombre,
                             marca = marca,
-                            categoria = categoria,
+                            categoria = categoriaSeleccionada,
                             nombrePorcion = nombrePorcion,
                             pesoPorcion = pesoPorcion.toFloatOrNull() ?: 0f,
                             calorias = calorias.toIntOrNull() ?: 0,

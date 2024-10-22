@@ -1,12 +1,13 @@
 package com.example.proyectohealthy.data.local.entity
 
+import com.example.proyectohealthy.util.Constants
 import java.util.Date
 
 data class Alimento(
     val id: String = "",
     val marca: String = "",
     val nombre: String = "",
-    val categoria: String = "",
+    val categoria: String = Constants.CATEGORIAS_ALIMENTOS[0],
     val nombrePorcion: String = "",
     val pesoPorcion: Float = 0f,
     val calorias: Int = 0,

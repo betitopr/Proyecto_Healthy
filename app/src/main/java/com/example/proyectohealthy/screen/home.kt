@@ -200,17 +200,25 @@ fun HomeScreen(
     if (showAlimentoBottomSheet) {
         AlimentoBottomSheet(
             onDismiss = { showAlimentoBottomSheet = false },
-            onAlimentoSelected = { alimento, cantidad ->
-                registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComidaSeleccionado)
+            onAlimentoSelected = { alimento, cantidad, tipoComida -> // Actualizado para recibir el tipo de comida
+                registroComidaViewModel.agregarAlimento(
+                    alimento = alimento,
+                    cantidad = cantidad,
+                    tipoComida = tipoComida // Ahora viene del selector en el BottomSheet
+                )
                 showAlimentoBottomSheet = false
             },
-            onMiAlimentoSelected = { miAlimento, cantidad ->
-                registroComidaViewModel.agregarMiAlimento(miAlimento, cantidad, tipoComidaSeleccionado)
+            onMiAlimentoSelected = { miAlimento, cantidad, tipoComida -> // Actualizado para recibir el tipo de comida
+                registroComidaViewModel.agregarMiAlimento(
+                    miAlimento = miAlimento,
+                    cantidad = cantidad,
+                    tipoComida = tipoComida // Ahora viene del selector en el BottomSheet
+                )
                 showAlimentoBottomSheet = false
             },
             alimentoViewModel = alimentoViewModel,
             misAlimentosViewModel = misAlimentosViewModel,
-            tipoComidaSeleccionado = tipoComidaSeleccionado
+            tipoComidaSeleccionado = tipoComidaSeleccionado // Este será el valor inicial en el selector
         )
     }
     // Nuevo BottomSheet para agregar ejercicio

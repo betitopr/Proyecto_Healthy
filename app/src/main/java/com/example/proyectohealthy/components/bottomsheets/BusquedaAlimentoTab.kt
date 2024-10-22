@@ -7,8 +7,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -74,10 +77,15 @@ fun AlimentoItem(
 @Composable
 fun DetalleAlimentoBottomSheet(
     alimento: Alimento,
+    tipoComidaInicial: String, // Nuevo parámetro
     onDismiss: () -> Unit,
-    onConfirm: (Float) -> Unit
+    onConfirm: (Float, String) -> Unit // Modificado para incluir el tipo de comida
 ) {
     var cantidad by remember { mutableStateOf("1") }
+    var tipoComidaSeleccionado by remember { mutableStateOf(tipoComidaInicial) }
+    var showTipoComidaMenu by remember { mutableStateOf(false) }
+
+    val tiposComida = listOf("Desayuno", "Almuerzo", "Cena", "Snacks")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -88,9 +96,9 @@ fun DetalleAlimentoBottomSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
-                .imePadding() // Ajusta el contenido cuando aparece el teclado
-                .navigationBarsPadding() // Agrega padding para la barra de navegación
-                .verticalScroll(rememberScrollState()) // Permite desplazamiento si el contenido no cabe
+                .imePadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
         ) {
             Text(alimento.nombre, style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(8.dp))
@@ -99,6 +107,7 @@ fun DetalleAlimentoBottomSheet(
             Text("Carbohidratos: ${alimento.carbohidratos}g")
             Text("Grasas: ${alimento.grasas}g")
             Spacer(modifier = Modifier.height(12.dp))
+
             OutlinedTextField(
                 value = cantidad,
                 onValueChange = { cantidad = it },
@@ -106,7 +115,9 @@ fun DetalleAlimentoBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -116,12 +127,46 @@ fun DetalleAlimentoBottomSheet(
                 TextButton(onClick = onDismiss) {
                     Text("Cancelar")
                 }
-                Button(
-                    onClick = {
-                        cantidad.toFloatOrNull()?.let { onConfirm(it) }
+
+                Box {
+                    // Botón principal con menú desplegable
+                    Button(
+                        onClick = {
+                            // Si la cantidad es válida, mostrar el menú
+                            if (cantidad.toFloatOrNull() != null) {
+                                showTipoComidaMenu = true
+                            }
+                        }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Agregar $tipoComidaSeleccionado")
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Cambiar tipo de comida"
+                            )
+                        }
                     }
-                ) {
-                    Text("Agregar")
+
+                    // Menú desplegable para tipos de comida
+                    DropdownMenu(
+                        expanded = showTipoComidaMenu,
+                        onDismissRequest = { showTipoComidaMenu = false }
+                    ) {
+                        tiposComida.forEach { tipo ->
+                            DropdownMenuItem(
+                                text = { Text("Agregar a $tipo") },
+                                onClick = {
+                                    cantidad.toFloatOrNull()?.let { cantidadFloat ->
+                                        onConfirm(cantidadFloat, tipo)
+                                    }
+                                    showTipoComidaMenu = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
