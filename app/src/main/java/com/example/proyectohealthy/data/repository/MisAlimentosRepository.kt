@@ -62,18 +62,44 @@ class MisAlimentosRepository @Inject constructor(
     }
 
     fun searchMisAlimentosByNombre(idPerfil: String, nombre: String): Flow<List<MisAlimentos>> = callbackFlow {
-        val query = misAlimentosRef.child(idPerfil).orderByChild("nombre").startAt(nombre).endAt(nombre + "\uf8ff")
-        val listener = query.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val misAlimentos = snapshot.children.mapNotNull {
-                    it.getValue(MisAlimentos::class.java)?.copy(id = it.key ?: "")
+        if (nombre.isBlank()) {
+            // Si está vacío, obtener todos los alimentos
+            val queryTodos = misAlimentosRef.child(idPerfil).orderByChild("nombre")
+            val listener = queryTodos.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val misAlimentos = snapshot.children.mapNotNull {
+                        it.getValue(MisAlimentos::class.java)?.copy(id = it.key ?: "")
+                    }
+                    trySend(misAlimentos)
                 }
-                trySend(misAlimentos)
-            }
-            override fun onCancelled(error: DatabaseError) {
-                close(error.toException())
-            }
-        })
-        awaitClose { query.removeEventListener(listener) }
+
+                override fun onCancelled(error: DatabaseError) {
+                    close(error.toException())
+                }
+            })
+            awaitClose { queryTodos.removeEventListener(listener) }
+        } else {
+            // Si hay texto, realizar la búsqueda
+            val nombreBusqueda = nombre.trim().lowercase()
+            val query = misAlimentosRef
+                .child(idPerfil)
+                .orderByChild("nombre")
+                .startAt(nombreBusqueda)
+                .endAt(nombreBusqueda + "\uf8ff")
+
+            val listener = query.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val misAlimentos = snapshot.children.mapNotNull {
+                        it.getValue(MisAlimentos::class.java)?.copy(id = it.key ?: "")
+                    }
+                    trySend(misAlimentos)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    close(error.toException())
+                }
+            })
+            awaitClose { query.removeEventListener(listener) }
+        }
     }
 }

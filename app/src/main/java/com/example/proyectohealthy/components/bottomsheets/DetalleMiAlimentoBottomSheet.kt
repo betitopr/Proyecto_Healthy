@@ -1,9 +1,6 @@
 package com.example.proyectohealthy.components.bottomsheets
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -14,9 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
-import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +62,7 @@ fun DetalleMiAlimentoBottomSheet(
 
             Spacer(modifier = Modifier.height(4.dp))
 
+            // Separar los botones en dos, uno para agregar y otro para seleccionar el tipo de comida
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -77,15 +73,26 @@ fun DetalleMiAlimentoBottomSheet(
                     Text("Cancelar")
                 }
 
-                // Botón con menú desplegable para tipo de comida
+                // Botón para "Agregar"
+                Button(
+                    onClick = {
+                        cantidad.toFloatOrNull()?.let {
+                            onConfirm(it, tipoComidaSeleccionado)
+                        }
+                    }
+                ) {
+                    Text("Agregar")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Botón desplegable para seleccionar tipo de comida
                 Box {
                     Button(
-                        onClick = {
-                            showTipoComidaMenu = true
-                        }
+                        onClick = { showTipoComidaMenu = true }
                     ) {
                         Row {
-                            Text("Agregar $tipoComidaSeleccionado")
+                            Text(tipoComidaSeleccionado)
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
@@ -100,13 +107,10 @@ fun DetalleMiAlimentoBottomSheet(
                     ) {
                         tiposComida.forEach { tipo ->
                             DropdownMenuItem(
-                                text = { Text("Agregar $tipo") },
+                                text = { Text(tipo) },
                                 onClick = {
                                     tipoComidaSeleccionado = tipo
                                     showTipoComidaMenu = false
-                                    cantidad.toFloatOrNull()?.let {
-                                        onConfirm(it, tipo)
-                                    }
                                 }
                             )
                         }

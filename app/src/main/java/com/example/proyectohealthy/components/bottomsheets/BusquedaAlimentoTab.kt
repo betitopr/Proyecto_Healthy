@@ -1,5 +1,9 @@
 package com.example.proyectohealthy.components.bottomsheets
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,44 +13,46 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
+import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
 
 @Composable
 fun BusquedaAlimentoTab(
     viewModel: AlimentoViewModel,
-    onAlimentoSelected: (Alimento) -> Unit
+    favoritosViewModel: FavoritosViewModel = hiltViewModel(), // Agregamos ViewModel de favoritos
+    onAlimentoSelected: (Alimento) -> Unit,
+    currentQuery: String
 ) {
-    var searchQuery by remember { mutableStateOf("") }
     val alimentos by viewModel.alimentos.collectAsState()
+    val alimentosFavoritos by favoritosViewModel.alimentosFavoritos.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-                viewModel.searchAlimentosByNombre(it)
-            },
-            label = { Text("Buscar comida") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(end = 16.dp)
-        ) {
-            items(alimentos) { alimento ->
-                AlimentoItem(
-                    alimento = alimento,
-                    onClick = { onAlimentoSelected(alimento) }
-                )
-            }
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(alimentos) { alimento ->
+            AlimentoItem(
+                alimento = alimento,
+                isFavorito = alimentosFavoritos.containsKey(alimento.id),
+                onFavoritoClick = {
+                    favoritosViewModel.toggleFavorito(alimento.id, 1)
+                },
+                onClick = { onAlimentoSelected(alimento) }
+            )
         }
     }
 }
@@ -54,21 +60,49 @@ fun BusquedaAlimentoTab(
 @Composable
 fun AlimentoItem(
     alimento: Alimento,
+    isFavorito: Boolean,
+    onFavoritoClick: () -> Unit,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = alimento.nombre, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = "${alimento.calorias} kcal por ${alimento.nombrePorcion}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = alimento.nombre,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "${alimento.calorias} kcal por ${alimento.nombrePorcion}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            IconButton(onClick = onFavoritoClick) {
+                AnimatedContent(
+                    targetState = isFavorito,
+                    transitionSpec = {
+                        scaleIn() togetherWith scaleOut()
+                    }
+                ) { esFavorito ->
+                    Icon(
+                        imageVector = if (esFavorito) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (esFavorito) "Quitar de favoritos" else "Agregar a favoritos",
+                        tint = if (esFavorito) Color.Red else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.scale(if (esFavorito) 1.2f else 1f)
+                    )
+                }
+            }
         }
     }
 }
@@ -128,21 +162,29 @@ fun DetalleAlimentoBottomSheet(
                     Text("Cancelar")
                 }
 
-                Box {
-                    // Botón principal con menú desplegable
-                    Button(
-                        onClick = {
-                            // Si la cantidad es válida, mostrar el menú
-                            if (cantidad.toFloatOrNull() != null) {
-                                showTipoComidaMenu = true
-                            }
+                // Botón para agregar el alimento
+                Button(
+                    onClick = {
+                        cantidad.toFloatOrNull()?.let {
+                            onConfirm(it, tipoComidaSeleccionado)
                         }
+                    }
+                ) {
+                    Text("Agregar")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Botón para seleccionar el tipo de comida (con menú desplegable)
+                Box {
+                    Button(
+                        onClick = { showTipoComidaMenu = true }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Agregar $tipoComidaSeleccionado")
+                            Text(tipoComidaSeleccionado)
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = "Cambiar tipo de comida"
@@ -150,18 +192,16 @@ fun DetalleAlimentoBottomSheet(
                         }
                     }
 
-                    // Menú desplegable para tipos de comida
+                    // Menú desplegable para cambiar el tipo de comida
                     DropdownMenu(
                         expanded = showTipoComidaMenu,
                         onDismissRequest = { showTipoComidaMenu = false }
                     ) {
                         tiposComida.forEach { tipo ->
                             DropdownMenuItem(
-                                text = { Text("Agregar a $tipo") },
+                                text = { Text(tipo) },
                                 onClick = {
-                                    cantidad.toFloatOrNull()?.let { cantidadFloat ->
-                                        onConfirm(cantidadFloat, tipo)
-                                    }
+                                    tipoComidaSeleccionado = tipo
                                     showTipoComidaMenu = false
                                 }
                             )

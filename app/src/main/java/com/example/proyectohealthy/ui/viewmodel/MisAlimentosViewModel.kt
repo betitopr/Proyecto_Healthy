@@ -26,9 +26,30 @@ class MisAlimentosViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+    private val _currentQuery = MutableStateFlow("")
+
 
     init {
         loadMisAlimentos()
+    }
+
+
+    fun searchMisAlimentosByNombre(query: String) {
+        viewModelScope.launch {
+            _currentQuery.value = query
+            auth.currentUser?.uid?.let { userId ->
+                misAlimentosRepository.getMisAlimentosFlow(userId).collect { allMisAlimentos ->
+                    if (query.isEmpty()) {
+                        _misAlimentos.value = allMisAlimentos
+                    } else {
+                        _misAlimentos.value = allMisAlimentos.filter {
+                            it.nombre.contains(query, ignoreCase = true) ||
+                                    it.marca.contains(query, ignoreCase = true)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun loadMisAlimentos() {
@@ -42,6 +63,8 @@ class MisAlimentosViewModel @Inject constructor(
             }
         }
     }
+
+
 
     fun createOrUpdateMiAlimento(miAlimento: MisAlimentos) {
         viewModelScope.launch {
@@ -60,18 +83,31 @@ class MisAlimentosViewModel @Inject constructor(
         return misAlimentosRepository.getMiAlimentoById(idPerfil, id)
     }
 
-    fun deleteMiAlimento(id: String) {
+    fun deleteMiAlimento(alimentoId: String, favoritosViewModel: FavoritosViewModel) {
         viewModelScope.launch {
             try {
-                val idPerfil = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
-                misAlimentosRepository.deleteMiAlimento(idPerfil, id)
+                val userId = auth.currentUser?.uid ?: return@launch
+                // Primero quitamos de favoritos
+                favoritosViewModel.removeFavorito(alimentoId)
+                // Luego eliminamos el alimento
+                misAlimentosRepository.deleteMiAlimento(userId, alimentoId)
             } catch (e: Exception) {
-                _error.value = "Error al eliminar mi alimento: ${e.message}"
+                _error.value = "Error al eliminar el alimento: ${e.message}"
             }
         }
     }
 
-    fun searchMisAlimentosByNombre(nombre: String) {
+    fun updateMiAlimento(miAlimento: MisAlimentos) {
+        viewModelScope.launch {
+            try {
+                misAlimentosRepository.createOrUpdateMiAlimento(miAlimento)
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar el alimento: ${e.message}"
+            }
+        }
+    }
+
+    /*fun searchMisAlimentosByNombre(nombre: String) {
         viewModelScope.launch {
             try {
                 val idPerfil = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
@@ -82,7 +118,7 @@ class MisAlimentosViewModel @Inject constructor(
                 _error.value = "Error al buscar mis alimentos: ${e.message}"
             }
         }
-    }
+    }*/
 
     fun clearError() {
         _error.value = null

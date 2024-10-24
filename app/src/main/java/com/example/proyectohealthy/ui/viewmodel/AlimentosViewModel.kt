@@ -27,6 +27,8 @@ class AlimentoViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _currentQuery = MutableStateFlow("")
+
     init {
         viewModelScope.launch {
             alimentoRepository.getAllAlimentosFlow().collect {
@@ -70,11 +72,25 @@ class AlimentoViewModel @Inject constructor(
             }
         }
     }
+    private suspend fun observeAlimentos() {
+        alimentoRepository.getAllAlimentosFlow().collect { allAlimentos ->
+            val query = _currentQuery.value
+            if (query.isEmpty()) {
+                _alimentos.value = allAlimentos
+            } else {
+                _alimentos.value = allAlimentos.filter {
+                    it.nombre.contains(query, ignoreCase = true) ||
+                            it.marca.contains(query, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     fun searchAlimentosByNombre(nombre: String) {
         viewModelScope.launch {
-            alimentoRepository.searchAlimentosByNombre(nombre).collect {
-                _alimentos.value = it
+            viewModelScope.launch {
+                _currentQuery.value = nombre
+                observeAlimentos()
             }
         }
     }

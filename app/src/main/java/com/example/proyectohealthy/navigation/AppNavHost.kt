@@ -11,7 +11,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.proyectohealthy.screen.BaseDatosScreen
 
 import com.example.proyectohealthy.screen.HomeScreen
 import com.example.proyectohealthy.screen.auth.LoginScreen
@@ -120,15 +119,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             )
         }
         composable("alimentos") {
-            BaseDatosScreen(
-                navController = navController,
-                onAlimentoSelected = { alimento, cantidad, tipoComida ->
-                    registroComidaViewModel.agregarAlimento(alimento, cantidad, tipoComida)
-                },
-                onMiAlimentoSelected = { miAlimento, cantidad, tipoComida ->
-                    registroComidaViewModel.agregarMiAlimento(miAlimento, cantidad, tipoComida)
-                }
-            )
+
         }
         composable("profile") {
             ProfileScreen(

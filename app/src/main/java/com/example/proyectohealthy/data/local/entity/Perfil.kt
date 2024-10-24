@@ -17,7 +17,11 @@ data class Perfil(
     val entrenamientoFuerza: String = "",
     val perfilImagen: String? = null,
     val biografia: String? = null,
-    val alimentosFavoritos: Map<String, Boolean> = emptyMap(),
+    val favoritos: Map<String, FavoritoInfo> = emptyMap(),
     val alimentosRecientes: Map<String, Boolean> = emptyMap(),
     val premium: Boolean = false
+)
+data class FavoritoInfo(
+    val id: String = "",
+    val tipo: Int = 0, // 1 para Alimento, 2 para MisAlimentos
 )

@@ -1,9 +1,6 @@
 package com.example.proyectohealthy.components.bottomsheets
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -12,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
@@ -145,7 +141,7 @@ fun AgregarMiAlimentoBottomSheet(
                 Button(
                     onClick = {
                         val nuevoAlimento = MisAlimentos(
-                            nombre = nombre,
+                            nombre = nombre.lowercase(),
                             marca = marca,
                             categoria = categoriaSeleccionada,
                             nombrePorcion = nombrePorcion,

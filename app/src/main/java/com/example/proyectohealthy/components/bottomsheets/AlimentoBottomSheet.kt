@@ -4,14 +4,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
+import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
 import com.journeyapps.barcodescanner.ScanContract
@@ -21,25 +25,30 @@ import com.journeyapps.barcodescanner.ScanOptions
 @Composable
 fun AlimentoBottomSheet(
     onDismiss: () -> Unit,
-    onAlimentoSelected: (Alimento, Float, String) -> Unit, // Añadido parámetro String para tipo de comida
-    onMiAlimentoSelected: (MisAlimentos, Float, String) -> Unit, // Añadido parámetro String para tipo de comida
+    onAlimentoSelected: (Alimento, Float, String) -> Unit,
+    onMiAlimentoSelected: (MisAlimentos, Float, String) -> Unit,
     alimentoViewModel: AlimentoViewModel,
     misAlimentosViewModel: MisAlimentosViewModel,
+    favoritosViewModel: FavoritosViewModel = hiltViewModel(),
     scannerViewModel: ScannerViewModel = hiltViewModel(),
     tipoComidaSeleccionado: String
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
+    var searchQuery by remember { mutableStateOf("") }
     var showDetalleBottomSheet by remember { mutableStateOf(false) }
     var showAgregarMiAlimentoBottomSheet by remember { mutableStateOf(false) }
     var alimentoSeleccionado by remember { mutableStateOf<Any?>(null) }
-    var showQrScanner by remember { mutableStateOf(false) }
 
     val scanLauncher = rememberLauncherForActivityResult(
         contract = ScanContract(),
         onResult = { result ->
             result.contents?.let { barcode ->
                 scannerViewModel.getProductInfo(barcode)
-                showQrScanner = true
+                // Al escanear, procesamos directamente sin cambiar de pestaña
+                scannerViewModel.getProductInfo(barcode).let { producto ->
+                    // Procesar el producto escaneado
+                    // Mostrar el detalle cuando se tenga la información
+                }
             }
         }
     )
@@ -52,69 +61,111 @@ fun AlimentoBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 16.dp)
+                .padding(16.dp)
         ) {
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                Tab(selected = selectedTabIndex == 0, onClick = { selectedTabIndex = 0 }) {
-                    Text("Búsqueda")
-                }
-                Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }) {
-                    Text("Mis Alimentos")
-                }
-                Tab(selected = selectedTabIndex == 2, onClick = {
-                    selectedTabIndex = 2
-                    val options = ScanOptions()
-                    options.setOrientationLocked(false)
-                    options.setPrompt("Escanea el código de barras")
-                    options.setBeepEnabled(true)
-                    options.setBarcodeImageEnabled(true)
-                    scanLauncher.launch(options)
-                }) {
-                    Text("QR")
+            // Barra de búsqueda y scanner
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = {
+                        searchQuery = it
+                        when (selectedTabIndex) {
+                            0 -> alimentoViewModel.searchAlimentosByNombre(it)
+                            1 -> misAlimentosViewModel.searchMisAlimentosByNombre(it)
+                            2 -> favoritosViewModel.searchFavoritos(it)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Buscar alimentos") },
+                    singleLine = true
+                )
+
+                IconButton(
+                    onClick = {
+                        val options = ScanOptions().apply {
+                            setOrientationLocked(false)
+                            setPrompt("Escanea el código de barras")
+                            setBeepEnabled(true)
+                            setBarcodeImageEnabled(true)
+                        }
+                        scanLauncher.launch(options)
+                    }
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, "Escanear")
                 }
             }
 
-            when (selectedTabIndex) {
-                0 -> BusquedaAlimentoTab(
-                    viewModel = alimentoViewModel,
-                    onAlimentoSelected = { alimento ->
-                        alimentoSeleccionado = alimento
-                        showDetalleBottomSheet = true
-                    }
-                )
-                1 -> MisAlimentosTab(
-                    viewModel = misAlimentosViewModel,
-                    onMiAlimentoSelected = { miAlimento ->
-                        alimentoSeleccionado = miAlimento
-                        showDetalleBottomSheet = true
-                    },
-                    onAddMiAlimentoClick = {
-                        showAgregarMiAlimentoBottomSheet = true
-                    }
-                )
-                2 -> {
-                    if (showQrScanner) {
-                        QrScannerTab(
-                            scannerViewModel = scannerViewModel,
-                            misAlimentosViewModel = misAlimentosViewModel,
-                            onMiAlimentoCreated = { miAlimento ->
-                                showQrScanner = false
-                                alimentoSeleccionado = miAlimento
-                                showDetalleBottomSheet = true
-                            },
-                            onDismiss = {
-                                showQrScanner = false
-                                selectedTabIndex = 1  // Vuelve a la pestaña de Mis Alimentos
-                            }
-                        )
-                    } else {
-                        Text("Presiona la pestaña QR para escanear un código")
-                    }
+            // Pestañas simplificadas
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                Tab(
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0 }
+                ) {
+                    Text("Alimentos")
+                }
+                Tab(
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1 }
+                ) {
+                    Text("Mis Alimentos")
+                }
+                Tab(
+                    selected = selectedTabIndex == 2,
+                    onClick = { selectedTabIndex = 2 }
+                ) {
+                    Text("Favoritos")
+                }
+            }
+
+            // Contenido según la pestaña seleccionada
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when (selectedTabIndex) {
+                    0 -> BusquedaAlimentoTab(
+                        viewModel = alimentoViewModel,
+                        favoritosViewModel = favoritosViewModel,
+                        onAlimentoSelected = { alimento ->
+                            alimentoSeleccionado = alimento
+                            showDetalleBottomSheet = true
+                        },
+                        currentQuery = searchQuery
+                    )
+                    1 -> MisAlimentosTab(
+                        viewModel = misAlimentosViewModel,
+                        favoritosViewModel = favoritosViewModel,
+                        onMiAlimentoSelected = { miAlimento ->
+                            alimentoSeleccionado = miAlimento
+                            showDetalleBottomSheet = true
+                        },
+                        onAddMiAlimentoClick = {
+                            showAgregarMiAlimentoBottomSheet = true
+                        },
+                        currentQuery = searchQuery
+                    )
+                    2 -> FavoritosTab(
+                        viewModel = favoritosViewModel,
+                        onAlimentoSelected = { alimento ->
+                            alimentoSeleccionado = alimento
+                            showDetalleBottomSheet = true
+                        },
+                        onMiAlimentoSelected = { miAlimento ->
+                            alimentoSeleccionado = miAlimento
+                            showDetalleBottomSheet = true
+                        },
+                        currentQuery = searchQuery
+                    )
                 }
             }
         }
     }
 
+    // Diálogos y BottomSheets adicionales
     if (showDetalleBottomSheet && alimentoSeleccionado != null) {
         when (alimentoSeleccionado) {
             is Alimento -> DetalleAlimentoBottomSheet(
@@ -127,7 +178,6 @@ fun AlimentoBottomSheet(
                     onDismiss()
                 }
             )
-
             is MisAlimentos -> DetalleMiAlimentoBottomSheet(
                 miAlimento = alimentoSeleccionado as MisAlimentos,
                 tipoComidaInicial = tipoComidaSeleccionado,

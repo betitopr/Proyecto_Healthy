@@ -134,7 +134,7 @@ fun IngresoAlimentoComponent(viewModel: AlimentoViewModel) {
         Button(
             onClick = {
                 val nuevoAlimento = Alimento(
-                    nombre = nombre,
+                    nombre = nombre.lowercase(),
                     marca = marca,
                     categoria = categoriaSeleccionada,
                     nombrePorcion = nombrePorcion,

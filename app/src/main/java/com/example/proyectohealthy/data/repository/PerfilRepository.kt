@@ -1,5 +1,7 @@
 package com.example.proyectohealthy.data.repository
 
+import android.util.Log
+import com.example.proyectohealthy.data.local.entity.FavoritoInfo
 import com.example.proyectohealthy.data.local.entity.Perfil
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
@@ -19,6 +21,8 @@ class PerfilRepository @Inject constructor(
     suspend fun createOrUpdatePerfil(perfil: Perfil) {
         perfilesRef.child(perfil.uid).setValue(perfil).await()
     }
+
+
 
     suspend fun getPerfil(uid: String): Perfil? {
         return try {
@@ -42,6 +46,57 @@ class PerfilRepository @Inject constructor(
         awaitClose { perfilesRef.child(uid).removeEventListener(listener) }
     }
 
+    suspend fun agregarFavorito(userId: String, alimentoId: String, tipo: Int) {
+        val favoritosRef = perfilesRef.child(userId).child("alimentosFavoritos")
+        favoritosRef.child(alimentoId).setValue(tipo).await()
+    }
+
+    suspend fun quitarFavorito(userId: String, alimentoId: String) {
+        val favoritosRef = perfilesRef.child(userId).child("alimentosFavoritos")
+        favoritosRef.child(alimentoId).removeValue().await()
+    }
+
+    fun getFavoritosFlow(userId: String): Flow<Map<String, FavoritoInfo>> = callbackFlow {
+        val favoritosRef = perfilesRef.child(userId).child("favoritos")
+        val listener = favoritosRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val favoritos = mutableMapOf<String, FavoritoInfo>()
+                snapshot.children.forEach { child ->
+                    child.getValue(FavoritoInfo::class.java)?.let { info ->
+                        favoritos[child.key ?: return@forEach] = info
+                    }
+                }
+                trySend(favoritos)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        })
+        awaitClose { favoritosRef.removeEventListener(listener) }
+    }
+
+    suspend fun toggleFavorito(userId: String, itemId: String, tipo: Int) {
+        try {
+            val favoritosRef = perfilesRef.child(userId).child("favoritos")
+            val snapshot = favoritosRef.child(itemId).get().await()
+
+            if (snapshot.exists()) {
+                // Si existe, lo removemos
+                favoritosRef.child(itemId).removeValue().await()
+            } else {
+                // Si no existe, lo agregamos
+                val favoritoInfo = FavoritoInfo(
+                    id = itemId,
+                    tipo = tipo
+                )
+                favoritosRef.child(itemId).setValue(favoritoInfo).await()
+            }
+        } catch (e: Exception) {
+            Log.e("PerfilRepository", "Error al toggle favorito", e)
+            throw e
+        }
+    }
 
     suspend fun updateObjetivo(uid: String, objetivo: String) {
         perfilesRef.child(uid).child("objetivo").setValue(objetivo).await()

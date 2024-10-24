@@ -1,11 +1,13 @@
 package com.example.proyectohealthy
 
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.rememberNavController
 import com.example.proyectohealthy.navigation.AppNavigation
@@ -45,6 +47,7 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Composable
     fun AppNavigationWrapper() {
         val navController = rememberNavController()
