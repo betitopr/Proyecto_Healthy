@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.data.local.entity.Alimento
@@ -30,7 +32,7 @@ import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 @Composable
 fun MisAlimentosTab(
     viewModel: MisAlimentosViewModel,
-    favoritosViewModel: FavoritosViewModel = hiltViewModel(), // Agregamos ViewModel de favoritos
+    favoritosViewModel: FavoritosViewModel = hiltViewModel(),
     onMiAlimentoSelected: (MisAlimentos) -> Unit,
     onAddMiAlimentoClick: () -> Unit,
     currentQuery: String
@@ -39,6 +41,10 @@ fun MisAlimentosTab(
     val favoritos by favoritosViewModel.alimentosFavoritos.collectAsState()
     var showDeleteDialog by remember { mutableStateOf<MisAlimentos?>(null) }
     var showEditDialog by remember { mutableStateOf<MisAlimentos?>(null) }
+
+    LaunchedEffect(currentQuery) {
+        viewModel.searchMisAlimentosByNombre(currentQuery)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Button(
@@ -52,30 +58,41 @@ fun MisAlimentosTab(
             Text("Agregar Nuevo Alimento")
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(misAlimentos) { miAlimento ->
-                MiAlimentoItem(
-                    miAlimento = miAlimento,
-                    isFavorito = favoritos.containsKey(miAlimento.id),
-                    onFavoritoClick = {
-                        favoritosViewModel.toggleFavorito(miAlimento.id, 2)
-                    },
-                    onEditClick = {
-                        showEditDialog = miAlimento
-                    },
-                    onDeleteClick = {
-                        showDeleteDialog = miAlimento
-                    },
-                    onClick = { onMiAlimentoSelected(miAlimento) }
-                )
+        Box(modifier = Modifier.weight(1f)) {
+            if (misAlimentos.isEmpty()) {
+                if (currentQuery.isNotEmpty()) {
+                    EmptySearchResult()
+                } else {
+                    LoadingIndicator()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(misAlimentos) { miAlimento ->
+                        MiAlimentoItem(
+                            miAlimento = miAlimento,
+                            isFavorito = favoritos.containsKey(miAlimento.id),
+                            onFavoritoClick = {
+                                favoritosViewModel.toggleFavorito(miAlimento.id, 2)
+                            },
+                            onEditClick = {
+                                showEditDialog = miAlimento
+                            },
+                            onDeleteClick = {
+                                showDeleteDialog = miAlimento
+                            },
+                            onClick = { onMiAlimentoSelected(miAlimento) }
+                        )
+                    }
+                }
             }
         }
     }
 
+    // Diálogo de edición
     showEditDialog?.let { miAlimento ->
         EditarMiAlimentoDialog(
             miAlimento = miAlimento,
@@ -98,7 +115,7 @@ fun MisAlimentosTab(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteMiAlimento(miAlimento.id,favoritosViewModel)
+                        viewModel.deleteMiAlimento(miAlimento.id, favoritosViewModel)
                         showDeleteDialog = null
                     }
                 ) {
@@ -113,6 +130,47 @@ fun MisAlimentosTab(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun EmptySearchResult() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            modifier = Modifier
+                .size(64.dp)
+                .padding(bottom = 16.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        )
+        Text(
+            text = "No se encontraron resultados",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Intenta con una búsqueda diferente",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun LoadingIndicator() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }
 

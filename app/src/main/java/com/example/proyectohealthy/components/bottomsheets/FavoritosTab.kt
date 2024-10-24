@@ -135,31 +135,6 @@ private fun EmptyFavoritosContent(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun ErrorContent(
-    message: String,
-    modifier: Modifier = Modifier,
-    onRetry: () -> Unit
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-        Button(
-            onClick = onRetry,
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("Reintentar")
-        }
-    }
-}
 
 @Composable
 private fun AlimentoFavoritoCard(

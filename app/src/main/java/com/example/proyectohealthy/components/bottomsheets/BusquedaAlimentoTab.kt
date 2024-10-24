@@ -31,32 +31,44 @@ import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
 @Composable
 fun BusquedaAlimentoTab(
     viewModel: AlimentoViewModel,
-    favoritosViewModel: FavoritosViewModel = hiltViewModel(), // Agregamos ViewModel de favoritos
+    favoritosViewModel: FavoritosViewModel,
     onAlimentoSelected: (Alimento) -> Unit,
     currentQuery: String
 ) {
     val alimentos by viewModel.alimentos.collectAsState()
     val alimentosFavoritos by favoritosViewModel.alimentosFavoritos.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(alimentos) { alimento ->
-            AlimentoItem(
-                alimento = alimento,
-                isFavorito = alimentosFavoritos.containsKey(alimento.id),
-                onFavoritoClick = {
-                    favoritosViewModel.toggleFavorito(alimento.id, 1)
-                },
-                onClick = { onAlimentoSelected(alimento) }
-            )
+    LaunchedEffect(currentQuery) {
+        viewModel.searchAlimentosByNombre(currentQuery)
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (alimentos.isEmpty()) {
+            if (currentQuery.isNotEmpty()) {
+                EmptySearchResult()
+            } else {
+                LoadingIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(alimentos) { alimento ->
+                    AlimentoItem(
+                        alimento = alimento,
+                        isFavorito = alimentosFavoritos.containsKey(alimento.id),
+                        onFavoritoClick = {
+                            favoritosViewModel.toggleFavorito(alimento.id, 1)
+                        },
+                        onClick = { onAlimentoSelected(alimento) }
+                    )
+                }
+            }
         }
     }
 }
-
 @Composable
 fun AlimentoItem(
     alimento: Alimento,

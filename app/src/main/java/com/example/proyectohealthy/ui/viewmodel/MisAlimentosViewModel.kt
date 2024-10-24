@@ -43,8 +43,7 @@ class MisAlimentosViewModel @Inject constructor(
                         _misAlimentos.value = allMisAlimentos
                     } else {
                         _misAlimentos.value = allMisAlimentos.filter {
-                            it.nombre.contains(query, ignoreCase = true) ||
-                                    it.marca.contains(query, ignoreCase = true)
+                            it.nombre.contains(query, ignoreCase = true)
                         }
                     }
                 }

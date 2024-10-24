@@ -27,9 +27,6 @@ class FavoritosViewModel @Inject constructor(
     private val _alimentosFavoritos = MutableStateFlow<Map<String, FavoritoInfo>>(emptyMap())
     val alimentosFavoritos: StateFlow<Map<String, FavoritoInfo>> = _alimentosFavoritos.asStateFlow()
 
-    private val _uiState = MutableStateFlow<FavoritosUiState>(FavoritosUiState.Loading)
-    val uiState = _uiState.asStateFlow()
-
     private val _favoritos = MutableStateFlow<List<Any>>(emptyList())
     val favoritos = _favoritos.asStateFlow()
 
@@ -39,25 +36,77 @@ class FavoritosViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
-    private val _favoritosMap = MutableStateFlow<Map<String, FavoritoInfo>>(emptyMap())
+    private val _uiState = MutableStateFlow<FavoritosUiState>(FavoritosUiState.Loading)
+    val uiState = _uiState.asStateFlow()
 
-    private val _currentQuery = MutableStateFlow("")
+    private var allItems = listOf<FavoritoItem>()
 
     init {
         cargarFavoritos()
     }
 
-    fun cargarFavoritos() {
+    private fun cargarFavoritos() {
         viewModelScope.launch {
             try {
-                val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
+                val userId = auth.currentUser?.uid ?: return@launch
                 perfilRepository.getFavoritosFlow(userId).collect { favoritosMap ->
-                    _alimentosFavoritos.value = favoritosMap
-                    loadFavoritosDetails(favoritosMap)
+                    _uiState.value = FavoritosUiState.Loading
+                    val items = mutableListOf<FavoritoItem>()
+
+                    // Cargar todos los items favoritos
+                    favoritosMap.forEach { (id, info) ->
+                        when (info.tipo) {
+                            1 -> {
+                                alimentoRepository.getAlimentoById(id)?.let { alimento ->
+                                    items.add(FavoritoItem.Alimento(alimento))
+                                }
+                            }
+                            2 -> {
+                                misAlimentosRepository.getMiAlimentoById(userId, id)?.let { miAlimento ->
+                                    items.add(FavoritoItem.MiAlimento(miAlimento))
+                                }
+                            }
+                        }
+                    }
+
+                    allItems = items
+                    _uiState.value = if (items.isEmpty()) {
+                        FavoritosUiState.Empty
+                    } else {
+                        FavoritosUiState.Success(items)
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = FavoritosUiState.Error("Error al cargar favoritos: ${e.message}")
             }
+        }
+    }
+
+    fun searchFavoritos(query: String) {
+        if (query.isEmpty()) {
+            // Si no hay búsqueda, mostrar todos los favoritos
+            _uiState.value = if (allItems.isEmpty()) {
+                FavoritosUiState.Empty
+            } else {
+                FavoritosUiState.Success(allItems)
+            }
+            return
+        }
+
+        // Filtrar los items según la búsqueda
+        val filteredItems = allItems.filter { item ->
+            when (item) {
+                is FavoritoItem.Alimento ->
+                    item.data.nombre.contains(query, ignoreCase = true)
+                is FavoritoItem.MiAlimento ->
+                    item.data.nombre.contains(query, ignoreCase = true)
+            }
+        }
+
+        _uiState.value = if (filteredItems.isEmpty()) {
+            if (allItems.isEmpty()) FavoritosUiState.Empty else FavoritosUiState.Success(emptyList())
+        } else {
+            FavoritosUiState.Success(filteredItems)
         }
     }
 
@@ -91,33 +140,6 @@ class FavoritosViewModel @Inject constructor(
         }
     }
 
-    fun searchFavoritos(query: String) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState !is FavoritosUiState.Success) return@launch
-
-            val filteredItems = if (query.isBlank()) {
-                currentState.items
-            } else {
-                currentState.items.filter { item ->
-                    when (item) {
-                        is FavoritoItem.Alimento ->
-                            item.data.nombre.contains(query, ignoreCase = true) ||
-                                    item.data.marca.contains(query, ignoreCase = true)
-                        is FavoritoItem.MiAlimento ->
-                            item.data.nombre.contains(query, ignoreCase = true) ||
-                                    item.data.marca.contains(query, ignoreCase = true)
-                    }
-                }
-            }
-
-            _uiState.value = if (filteredItems.isEmpty()) {
-                FavoritosUiState.Empty
-            } else {
-                FavoritosUiState.Success(filteredItems)
-            }
-        }
-    }
 
     fun removeFavorito(itemId: String) {
         viewModelScope.launch {

@@ -18,6 +18,7 @@ import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
+import com.example.proyectohealthy.ui.viewmodel.SearchViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 
@@ -31,10 +32,11 @@ fun AlimentoBottomSheet(
     misAlimentosViewModel: MisAlimentosViewModel,
     favoritosViewModel: FavoritosViewModel = hiltViewModel(),
     scannerViewModel: ScannerViewModel = hiltViewModel(),
+    searchViewModel: SearchViewModel = hiltViewModel(), // Añadimos el SearchViewModel
     tipoComidaSeleccionado: String
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
-    var searchQuery by remember { mutableStateOf("") }
+    val searchQuery by searchViewModel.searchQuery.collectAsState() // Usamos el estado compartido
     var showDetalleBottomSheet by remember { mutableStateOf(false) }
     var showAgregarMiAlimentoBottomSheet by remember { mutableStateOf(false) }
     var alimentoSeleccionado by remember { mutableStateOf<Any?>(null) }
@@ -44,14 +46,18 @@ fun AlimentoBottomSheet(
         onResult = { result ->
             result.contents?.let { barcode ->
                 scannerViewModel.getProductInfo(barcode)
-                // Al escanear, procesamos directamente sin cambiar de pestaña
-                scannerViewModel.getProductInfo(barcode).let { producto ->
-                    // Procesar el producto escaneado
-                    // Mostrar el detalle cuando se tenga la información
-                }
             }
         }
     )
+
+    // Efecto para aplicar la búsqueda al cambiar de pestaña
+    LaunchedEffect(selectedTabIndex) {
+        when (selectedTabIndex) {
+            0 -> alimentoViewModel.searchAlimentosByNombre(searchQuery)
+            1 -> misAlimentosViewModel.searchMisAlimentosByNombre(searchQuery)
+            2 -> favoritosViewModel.searchFavoritos(searchQuery)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -70,15 +76,15 @@ fun AlimentoBottomSheet(
             ) {
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
+                    onValueChange = { query ->
+                        searchViewModel.updateSearchQuery(query) // Actualizamos el estado compartido
+                        // Realizamos la búsqueda en la pestaña actual
                         when (selectedTabIndex) {
-                            0 -> alimentoViewModel.searchAlimentosByNombre(it)
-                            1 -> misAlimentosViewModel.searchMisAlimentosByNombre(it)
-                            2 -> favoritosViewModel.searchFavoritos(it)
+                            0 -> alimentoViewModel.searchAlimentosByNombre(query)
+                            1 -> misAlimentosViewModel.searchMisAlimentosByNombre(query)
+                            2 -> favoritosViewModel.searchFavoritos(query)
                         }
                     },
-                    modifier = Modifier.weight(1f),
                     placeholder = { Text("Buscar alimentos") },
                     singleLine = true
                 )
@@ -98,7 +104,7 @@ fun AlimentoBottomSheet(
                 }
             }
 
-            // Pestañas simplificadas
+            // Pestañas
             TabRow(selectedTabIndex = selectedTabIndex) {
                 Tab(
                     selected = selectedTabIndex == 0,
@@ -165,7 +171,7 @@ fun AlimentoBottomSheet(
         }
     }
 
-    // Diálogos y BottomSheets adicionales
+    // El resto del código (BottomSheets) se mantiene igual...
     if (showDetalleBottomSheet && alimentoSeleccionado != null) {
         when (alimentoSeleccionado) {
             is Alimento -> DetalleAlimentoBottomSheet(

@@ -19,7 +19,7 @@ class AlimentoViewModel @Inject constructor(
     private val alimentoRepository: AlimentoRepository
 ) : ViewModel() {
     private val _alimentos = MutableStateFlow<List<Alimento>>(emptyList())
-    val alimentos: StateFlow<List<Alimento>> = _alimentos.asStateFlow()
+    val alimentos = _alimentos.asStateFlow()
 
     private val _currentAlimento = MutableStateFlow<Alimento?>(null)
     val currentAlimento: StateFlow<Alimento?> = _currentAlimento.asStateFlow()
@@ -36,6 +36,8 @@ class AlimentoViewModel @Inject constructor(
             }
         }
     }
+
+
 
     fun createOrUpdateAlimento(alimento: Alimento) {
         viewModelScope.launch {
@@ -79,8 +81,7 @@ class AlimentoViewModel @Inject constructor(
                 _alimentos.value = allAlimentos
             } else {
                 _alimentos.value = allAlimentos.filter {
-                    it.nombre.contains(query, ignoreCase = true) ||
-                            it.marca.contains(query, ignoreCase = true)
+                    it.nombre.contains(query, ignoreCase = true)
                 }
             }
         }
