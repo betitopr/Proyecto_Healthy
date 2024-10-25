@@ -1,10 +1,17 @@
 package com.example.proyectohealthy.components.bottomsheets
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.components.ScannerComponent
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.AlimentoFiltros
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
@@ -45,6 +53,11 @@ fun AlimentoBottomSheet(
     var alimentoSeleccionado by rememberSaveable { mutableStateOf<Any?>(null) }
     val searchQuery by searchViewModel.searchQuery.collectAsState()
     var hasShownDetailBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var showFiltrosSheet by remember { mutableStateOf(false) }
+    val filtros by alimentoViewModel.filtros.collectAsState()
+    val alimentoFiltros by alimentoViewModel.filtros.collectAsState()
+    val misAlimentosFiltros by misAlimentosViewModel.filtros.collectAsState()
+    //val favoritosFiltros by favoritosViewModel.filtros.collectAsState()
 
 
     // Efecto para aplicar la búsqueda al cambiar de pestaña
@@ -85,14 +98,16 @@ fun AlimentoBottomSheet(
         ) {
             // Barra de búsqueda y scanner
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { query ->
-                        searchViewModel.updateSearchQuery(query) // Actualizamos el estado compartido
-                        // Realizamos la búsqueda en la pestaña actual
+                        searchViewModel.updateSearchQuery(query)
                         when (selectedTabIndex) {
                             0 -> alimentoViewModel.searchAlimentosByNombre(query)
                             1 -> misAlimentosViewModel.searchMisAlimentosByNombre(query)
@@ -100,7 +115,12 @@ fun AlimentoBottomSheet(
                         }
                     },
                     placeholder = { Text("Buscar alimentos") },
-                    singleLine = true
+                    singleLine = true,
+                    modifier = Modifier.weight(1f), // Esto hace que el TextField use el espacio disponible
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
 
                 ScannerComponent(
@@ -116,6 +136,74 @@ fun AlimentoBottomSheet(
                         showDetalleBottomSheet = show
                     }
                 )
+
+                // Botón de filtros con tamaño mínimo garantizado
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    IconButton(
+                        onClick = { showFiltrosSheet = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = "Filtros",
+                            modifier = Modifier.size(20.dp),
+                            tint = if (when (selectedTabIndex) {
+                                    0 -> alimentoFiltros.hasActiveFilters()
+                                    1 -> misAlimentosFiltros.hasActiveFilters()
+                                    else -> false
+                                }) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                    }
+
+                    val activeFilters = when (selectedTabIndex) {
+                        0 -> alimentoFiltros.countActiveFilters()
+                        1 -> misAlimentosFiltros.countActiveFilters()
+                        else -> 0
+                    }
+                    if (activeFilters > 0) {
+                        Badge(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                        ) {
+                            Text(
+                                text = activeFilters.toString(),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                // Botón limpiar más compacto
+                AnimatedVisibility(
+                    visible = when (selectedTabIndex) {
+                        0 -> alimentoFiltros.hasActiveFilters()
+                        1 -> misAlimentosFiltros.hasActiveFilters()
+                        else -> false
+                    }
+                ) {
+                    IconButton(
+                        onClick = {
+                            when (selectedTabIndex) {
+                                0 -> alimentoViewModel.updateFiltros(AlimentoFiltros())
+                                1 -> misAlimentosViewModel.updateFiltros(AlimentoFiltros())
+                            }
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Limpiar filtros",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
 
             // Pestañas
@@ -232,6 +320,32 @@ fun AlimentoBottomSheet(
             alimentoSeleccionado = null
             scannerViewModel.resetState()
         }
+    }
+    if (showFiltrosSheet) {
+        FiltrosBottomSheet(
+            mostrar = true,
+            filtrosActuales = when (selectedTabIndex) {
+                0 -> alimentoFiltros
+                1 -> misAlimentosFiltros
+                //2 -> favoritosFiltros
+                else -> AlimentoFiltros()
+            },
+            categoriasDisponibles = when (selectedTabIndex) {
+                0 -> alimentoViewModel.categoriasDisponibles.collectAsState().value
+                1 -> misAlimentosViewModel.categoriasDisponibles.collectAsState().value
+                //2 -> favoritosViewModel.categoriasDisponibles.collectAsState().value
+                else -> emptyList()
+            },
+            onDismiss = { showFiltrosSheet = false },
+            onFiltrosChanged = { newFiltros ->
+                when (selectedTabIndex) {
+                    0 -> alimentoViewModel.updateFiltros(newFiltros)
+                    1 -> misAlimentosViewModel.updateFiltros(newFiltros)
+                    //2 -> favoritosViewModel.updateFiltros(newFiltros)
+                }
+                showFiltrosSheet = false
+            }
+        )
     }
 
     if (showAgregarMiAlimentoBottomSheet) {

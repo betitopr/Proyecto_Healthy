@@ -2,6 +2,7 @@ package com.example.proyectohealthy.components
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.CircularProgressIndicator
@@ -15,7 +16,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
@@ -27,7 +30,8 @@ import java.util.Date
 fun ScannerComponent(
     scannerViewModel: ScannerViewModel,
     setAlimentoSeleccionado: (Any?) -> Unit,
-    setShowDetalleBottomSheet: (Boolean) -> Unit
+    setShowDetalleBottomSheet: (Boolean) -> Unit,
+
 ) {
     val uiState by scannerViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -83,7 +87,8 @@ fun ScannerComponent(
                 setBarcodeImageEnabled(true)
             }
             scanLauncher.launch(options)
-        }
+        },
+        modifier = Modifier.size(36.dp)
     ) {
         Icon(Icons.Default.QrCodeScanner, "Escanear")
     }
