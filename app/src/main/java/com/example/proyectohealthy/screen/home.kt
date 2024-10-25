@@ -40,7 +40,9 @@ import com.example.proyectohealthy.ui.viewmodel.RegistroComidaViewModel
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.ConsumoAguaViewModel
 import com.example.proyectohealthy.ui.viewmodel.EjercicioViewModel
+import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
+import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
 import java.time.LocalDate
 import java.util.Date
 import com.example.proyectohealthy.components.bottomsheets.EjercicioBottomSheet as EjercicioBottomSheet1
@@ -71,6 +73,8 @@ fun HomeScreen(
     val registrosComidaDiarios by registroComidaViewModel.registrosComidaDiarios.collectAsState()
     val registrosEjercicio by ejercicioViewModel.registrosEjercicio.collectAsState()
     val ejercicios by ejercicioViewModel.ejercicios.collectAsState()
+    val favoritosViewModel: FavoritosViewModel = hiltViewModel()
+
 
     var showIngresoEjercicio by remember { mutableStateOf(false) }
 
@@ -200,25 +204,26 @@ fun HomeScreen(
     if (showAlimentoBottomSheet) {
         AlimentoBottomSheet(
             onDismiss = { showAlimentoBottomSheet = false },
-            onAlimentoSelected = { alimento, cantidad, tipoComida -> // Actualizado para recibir el tipo de comida
+            onAlimentoSelected = { alimento, cantidad, tipoComida ->
                 registroComidaViewModel.agregarAlimento(
                     alimento = alimento,
                     cantidad = cantidad,
-                    tipoComida = tipoComida // Ahora viene del selector en el BottomSheet
+                    tipoComida = tipoComida // El tipo de comida viene del selector en el BottomSheet
                 )
                 showAlimentoBottomSheet = false
             },
-            onMiAlimentoSelected = { miAlimento, cantidad, tipoComida -> // Actualizado para recibir el tipo de comida
+            onMiAlimentoSelected = { miAlimento, cantidad, tipoComida ->
                 registroComidaViewModel.agregarMiAlimento(
                     miAlimento = miAlimento,
                     cantidad = cantidad,
-                    tipoComida = tipoComida // Ahora viene del selector en el BottomSheet
+                    tipoComida = tipoComida // El tipo de comida también viene del selector
                 )
                 showAlimentoBottomSheet = false
             },
             alimentoViewModel = alimentoViewModel,
             misAlimentosViewModel = misAlimentosViewModel,
-            tipoComidaSeleccionado = tipoComidaSeleccionado // Este será el valor inicial en el selector
+            favoritosViewModel = favoritosViewModel,
+            tipoComidaSeleccionado = tipoComidaSeleccionado // Pasar el tipo de comida seleccionado
         )
     }
     // Nuevo BottomSheet para agregar ejercicio

@@ -1,5 +1,9 @@
 package com.example.proyectohealthy.components.bottomsheets
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -262,11 +267,7 @@ fun MiAlimentoItem(
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -283,14 +284,21 @@ fun MiAlimentoItem(
                     )
                 }
 
-                // Botones de acción
                 Row {
                     IconButton(onClick = onFavoritoClick) {
-                        Icon(
-                            imageVector = if (isFavorito) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            contentDescription = if (isFavorito) "Quitar de favoritos" else "Agregar a favoritos",
-                            tint = if (isFavorito) Color.Red else MaterialTheme.colorScheme.onSurface
-                        )
+                        AnimatedContent(
+                            targetState = isFavorito,
+                            transitionSpec = {
+                                scaleIn() togetherWith scaleOut()
+                            }
+                        ) { esFavorito ->
+                            Icon(
+                                imageVector = if (esFavorito) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = if (esFavorito) "Quitar de favoritos" else "Agregar a favoritos",
+                                tint = if (esFavorito) Color.Red else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.scale(if (esFavorito) 1.2f else 1f)
+                            )
+                        }
                     }
                     IconButton(onClick = onEditClick) {
                         Icon(

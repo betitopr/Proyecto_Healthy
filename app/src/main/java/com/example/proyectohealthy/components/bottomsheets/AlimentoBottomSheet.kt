@@ -8,10 +8,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.proyectohealthy.components.ScannerComponent
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
@@ -21,6 +23,7 @@ import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
 import com.example.proyectohealthy.ui.viewmodel.SearchViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,25 +33,19 @@ fun AlimentoBottomSheet(
     onMiAlimentoSelected: (MisAlimentos, Float, String) -> Unit,
     alimentoViewModel: AlimentoViewModel,
     misAlimentosViewModel: MisAlimentosViewModel,
-    favoritosViewModel: FavoritosViewModel = hiltViewModel(),
-    scannerViewModel: ScannerViewModel = hiltViewModel(),
+    favoritosViewModel: FavoritosViewModel,
+    scannerViewModel: ScannerViewModel= hiltViewModel(),
     searchViewModel: SearchViewModel = hiltViewModel(), // Añadimos el SearchViewModel
-    tipoComidaSeleccionado: String
+    tipoComidaSeleccionado: String,
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val searchQuery by searchViewModel.searchQuery.collectAsState() // Usamos el estado compartido
-    var showDetalleBottomSheet by remember { mutableStateOf(false) }
     var showAgregarMiAlimentoBottomSheet by remember { mutableStateOf(false) }
-    var alimentoSeleccionado by remember { mutableStateOf<Any?>(null) }
+    var showScanner by remember { mutableStateOf(false) }
+    var showDetalleBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var alimentoSeleccionado by rememberSaveable { mutableStateOf<Any?>(null) }
+    val searchQuery by searchViewModel.searchQuery.collectAsState()
+    var hasShownDetailBottomSheet by rememberSaveable { mutableStateOf(false) }
 
-    val scanLauncher = rememberLauncherForActivityResult(
-        contract = ScanContract(),
-        onResult = { result ->
-            result.contents?.let { barcode ->
-                scannerViewModel.getProductInfo(barcode)
-            }
-        }
-    )
 
     // Efecto para aplicar la búsqueda al cambiar de pestaña
     LaunchedEffect(selectedTabIndex) {
@@ -56,6 +53,23 @@ fun AlimentoBottomSheet(
             0 -> alimentoViewModel.searchAlimentosByNombre(searchQuery)
             1 -> misAlimentosViewModel.searchMisAlimentosByNombre(searchQuery)
             2 -> favoritosViewModel.searchFavoritos(searchQuery)
+        }
+    }
+
+    // Efecto para manejar el cierre del BottomSheet
+    LaunchedEffect(showDetalleBottomSheet) {
+        if (!showDetalleBottomSheet) {
+            alimentoSeleccionado = null
+        }
+    }
+
+    // Efecto para limpiar el estado cuando se cierra el BottomSheet principal
+    DisposableEffect(Unit) {
+        onDispose {
+            showDetalleBottomSheet = false
+            alimentoSeleccionado = null
+            hasShownDetailBottomSheet = false
+            scannerViewModel.resetState()
         }
     }
 
@@ -89,19 +103,19 @@ fun AlimentoBottomSheet(
                     singleLine = true
                 )
 
-                IconButton(
-                    onClick = {
-                        val options = ScanOptions().apply {
-                            setOrientationLocked(false)
-                            setPrompt("Escanea el código de barras")
-                            setBeepEnabled(true)
-                            setBarcodeImageEnabled(true)
+                ScannerComponent(
+                    scannerViewModel = scannerViewModel,
+                    setAlimentoSeleccionado = { alimento ->
+                        alimentoSeleccionado = alimento
+                        showDetalleBottomSheet = true
+                    },
+                    setShowDetalleBottomSheet = { show ->
+                        if (!show) {
+                            alimentoSeleccionado = null
                         }
-                        scanLauncher.launch(options)
+                        showDetalleBottomSheet = show
                     }
-                ) {
-                    Icon(Icons.Default.QrCodeScanner, "Escanear")
-                }
+                )
             }
 
             // Pestañas
@@ -177,32 +191,59 @@ fun AlimentoBottomSheet(
             is Alimento -> DetalleAlimentoBottomSheet(
                 alimento = alimentoSeleccionado as Alimento,
                 tipoComidaInicial = tipoComidaSeleccionado,
-                onDismiss = { showDetalleBottomSheet = false },
+                onDismiss = {
+                    showDetalleBottomSheet = false
+                    alimentoSeleccionado = null
+                    showScanner = false
+                },
                 onConfirm = { cantidad, tipoComida ->
                     onAlimentoSelected(alimentoSeleccionado as Alimento, cantidad, tipoComida)
                     showDetalleBottomSheet = false
+                    alimentoSeleccionado = null
+                    showScanner = false
                     onDismiss()
                 }
             )
             is MisAlimentos -> DetalleMiAlimentoBottomSheet(
                 miAlimento = alimentoSeleccionado as MisAlimentos,
                 tipoComidaInicial = tipoComidaSeleccionado,
-                onDismiss = { showDetalleBottomSheet = false },
+                onDismiss = {
+                    showDetalleBottomSheet = false
+                    alimentoSeleccionado = null
+                    showScanner = false
+                    hasShownDetailBottomSheet = false
+                    scannerViewModel.resetState()
+                },
                 onConfirm = { cantidad, tipoComida ->
                     onMiAlimentoSelected(alimentoSeleccionado as MisAlimentos, cantidad, tipoComida)
                     showDetalleBottomSheet = false
+                    alimentoSeleccionado = null
+                    showScanner = false
+                    hasShownDetailBottomSheet = false
+                    scannerViewModel.resetState()
                     onDismiss()
                 }
             )
         }
     }
+    LaunchedEffect(showDetalleBottomSheet) {
+        if (!showDetalleBottomSheet) {
+            hasShownDetailBottomSheet = false
+            alimentoSeleccionado = null
+            scannerViewModel.resetState()
+        }
+    }
 
     if (showAgregarMiAlimentoBottomSheet) {
         AgregarMiAlimentoBottomSheet(
-            onDismiss = { showAgregarMiAlimentoBottomSheet = false },
+            onDismiss = { showAgregarMiAlimentoBottomSheet = false
+                alimentoSeleccionado = null
+            },
             onConfirm = { nuevoMiAlimento ->
                 misAlimentosViewModel.createOrUpdateMiAlimento(nuevoMiAlimento)
                 showAgregarMiAlimentoBottomSheet = false
+                alimentoSeleccionado = null
+
             },
             viewModel = misAlimentosViewModel
         )

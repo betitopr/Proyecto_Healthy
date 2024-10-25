@@ -27,8 +27,8 @@ class FavoritosViewModel @Inject constructor(
     private val _alimentosFavoritos = MutableStateFlow<Map<String, FavoritoInfo>>(emptyMap())
     val alimentosFavoritos: StateFlow<Map<String, FavoritoInfo>> = _alimentosFavoritos.asStateFlow()
 
-    private val _favoritos = MutableStateFlow<List<Any>>(emptyList())
-    val favoritos = _favoritos.asStateFlow()
+    private val _uiState = MutableStateFlow<FavoritosUiState>(FavoritosUiState.Loading)
+    val uiState = _uiState.asStateFlow()
 
     private val _isLoading = MutableStateFlow(true)  // Cambiado a true inicialmente
     val isLoading = _isLoading.asStateFlow()
@@ -36,13 +36,20 @@ class FavoritosViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
-    private val _uiState = MutableStateFlow<FavoritosUiState>(FavoritosUiState.Loading)
-    val uiState = _uiState.asStateFlow()
-
     private var allItems = listOf<FavoritoItem>()
 
     init {
-        cargarFavoritos()
+        viewModelScope.launch {
+            try {
+                val userId = auth.currentUser?.uid ?: return@launch
+                perfilRepository.getFavoritosFlow(userId).collect { favoritosMap ->
+                    _alimentosFavoritos.value = favoritosMap
+                    actualizarListaFavoritos(favoritosMap)
+                }
+            } catch (e: Exception) {
+                _uiState.value = FavoritosUiState.Error("Error al cargar favoritos: ${e.message}")
+            }
+        }
     }
 
     private fun cargarFavoritos() {
@@ -82,6 +89,33 @@ class FavoritosViewModel @Inject constructor(
         }
     }
 
+    private suspend fun actualizarListaFavoritos(favoritosMap: Map<String, FavoritoInfo>) {
+        val userId = auth.currentUser?.uid ?: return
+        val items = mutableListOf<FavoritoItem>()
+
+        favoritosMap.forEach { (id, info) ->
+            when (info.tipo) {
+                1 -> {
+                    alimentoRepository.getAlimentoById(id)?.let { alimento ->
+                        items.add(FavoritoItem.Alimento(alimento))
+                    }
+                }
+                2 -> {
+                    misAlimentosRepository.getMiAlimentoById(userId, id)?.let { miAlimento ->
+                        items.add(FavoritoItem.MiAlimento(miAlimento))
+                    }
+                }
+            }
+        }
+
+        allItems = items
+        _uiState.value = if (items.isEmpty()) {
+            FavoritosUiState.Empty
+        } else {
+            FavoritosUiState.Success(items)
+        }
+    }
+
     fun searchFavoritos(query: String) {
         if (query.isEmpty()) {
             // Si no hay búsqueda, mostrar todos los favoritos
@@ -110,36 +144,6 @@ class FavoritosViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadFavoritosDetails(favoritosMap: Map<String, FavoritoInfo>) {
-        try {
-            val favoritosList = mutableListOf<FavoritoItem>()
-
-            favoritosMap.forEach { (itemId, info) ->
-                when (info.tipo) {
-                    1 -> { // Alimento
-                        alimentoRepository.getAlimentoById(itemId)?.let { alimento ->
-                            favoritosList.add(FavoritoItem.Alimento(alimento))
-                        }
-                    }
-                    2 -> { // MiAlimento
-                        val userId = auth.currentUser?.uid ?: return@forEach
-                        misAlimentosRepository.getMiAlimentoById(userId, itemId)?.let { miAlimento ->
-                            favoritosList.add(FavoritoItem.MiAlimento(miAlimento))
-                        }
-                    }
-                }
-            }
-
-            _uiState.value = if (favoritosList.isEmpty()) {
-                FavoritosUiState.Empty
-            } else {
-                FavoritosUiState.Success(favoritosList)
-            }
-        } catch (e: Exception) {
-            _uiState.value = FavoritosUiState.Error("Error al cargar detalles: ${e.message}")
-        }
-    }
-
 
     fun removeFavorito(itemId: String) {
         viewModelScope.launch {
@@ -156,7 +160,11 @@ class FavoritosViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
+
+                // Actualizar Firebase primero
                 perfilRepository.toggleFavorito(userId, itemId, tipo)
+
+                // El estado se actualizará automáticamente a través del Flow en init
             } catch (e: Exception) {
                 _uiState.value = FavoritosUiState.Error("Error al actualizar favorito: ${e.message}")
             }
@@ -190,34 +198,6 @@ class FavoritosViewModel @Inject constructor(
     }
 
 
-
-    private suspend fun actualizarListaFavoritos(favoritosMap: Map<String, Int>) {
-        val favoritosList = mutableListOf<Any>()
-
-        favoritosMap.forEach { (id, tipo) ->
-            try {
-                when (tipo) {
-                    1 -> { // Alimento
-                        val alimento = alimentoRepository.getAlimentoById(id)
-                        if (alimento != null) {
-                            favoritosList.add(alimento)
-                        }
-                    }
-                    2 -> { // MiAlimento
-                        auth.currentUser?.uid?.let { userId ->
-                            val miAlimento = misAlimentosRepository.getMiAlimentoById(userId, id)
-                            if (miAlimento != null) {
-                                favoritosList.add(miAlimento)
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("FavoritosViewModel", "Error cargando favorito $id: ${e.message}")
-            }
-        }
-        _favoritos.value = favoritosList
-    }
 
     // Función modificada para manejar adecuadamente el estado de los favoritos
 
