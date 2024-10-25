@@ -57,7 +57,7 @@ fun AlimentoBottomSheet(
     val filtros by alimentoViewModel.filtros.collectAsState()
     val alimentoFiltros by alimentoViewModel.filtros.collectAsState()
     val misAlimentosFiltros by misAlimentosViewModel.filtros.collectAsState()
-    //val favoritosFiltros by favoritosViewModel.filtros.collectAsState()
+    val favoritosFiltros by favoritosViewModel.filtros.collectAsState()
 
 
     // Efecto para aplicar la búsqueda al cambiar de pestaña
@@ -152,6 +152,7 @@ fun AlimentoBottomSheet(
                             tint = if (when (selectedTabIndex) {
                                     0 -> alimentoFiltros.hasActiveFilters()
                                     1 -> misAlimentosFiltros.hasActiveFilters()
+                                    2 -> favoritosFiltros.hasActiveFilters()
                                     else -> false
                                 }) {
                                 MaterialTheme.colorScheme.primary
@@ -164,6 +165,7 @@ fun AlimentoBottomSheet(
                     val activeFilters = when (selectedTabIndex) {
                         0 -> alimentoFiltros.countActiveFilters()
                         1 -> misAlimentosFiltros.countActiveFilters()
+                        2 -> favoritosFiltros.countActiveFilters()
                         else -> 0
                     }
                     if (activeFilters > 0) {
@@ -185,6 +187,7 @@ fun AlimentoBottomSheet(
                     visible = when (selectedTabIndex) {
                         0 -> alimentoFiltros.hasActiveFilters()
                         1 -> misAlimentosFiltros.hasActiveFilters()
+                        2 -> favoritosFiltros.hasActiveFilters()
                         else -> false
                     }
                 ) {
@@ -193,6 +196,7 @@ fun AlimentoBottomSheet(
                             when (selectedTabIndex) {
                                 0 -> alimentoViewModel.updateFiltros(AlimentoFiltros())
                                 1 -> misAlimentosViewModel.updateFiltros(AlimentoFiltros())
+                                2 -> favoritosViewModel.updateFiltros(AlimentoFiltros())
                             }
                         },
                         modifier = Modifier.size(36.dp)
@@ -327,13 +331,13 @@ fun AlimentoBottomSheet(
             filtrosActuales = when (selectedTabIndex) {
                 0 -> alimentoFiltros
                 1 -> misAlimentosFiltros
-                //2 -> favoritosFiltros
+                2 -> favoritosFiltros
                 else -> AlimentoFiltros()
             },
             categoriasDisponibles = when (selectedTabIndex) {
                 0 -> alimentoViewModel.categoriasDisponibles.collectAsState().value
                 1 -> misAlimentosViewModel.categoriasDisponibles.collectAsState().value
-                //2 -> favoritosViewModel.categoriasDisponibles.collectAsState().value
+                2 -> favoritosViewModel.categoriasDisponibles.collectAsState().value
                 else -> emptyList()
             },
             onDismiss = { showFiltrosSheet = false },
@@ -341,7 +345,7 @@ fun AlimentoBottomSheet(
                 when (selectedTabIndex) {
                     0 -> alimentoViewModel.updateFiltros(newFiltros)
                     1 -> misAlimentosViewModel.updateFiltros(newFiltros)
-                    //2 -> favoritosViewModel.updateFiltros(newFiltros)
+                    2 -> favoritosViewModel.updateFiltros(newFiltros)
                 }
                 showFiltrosSheet = false
             }

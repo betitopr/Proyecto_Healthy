@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Alimento
+import com.example.proyectohealthy.data.local.entity.AlimentoFiltros
 import com.example.proyectohealthy.data.local.entity.FavoritoInfo
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
+import com.example.proyectohealthy.data.local.entity.OrderType
 import com.example.proyectohealthy.data.repository.AlimentoRepository
 import com.example.proyectohealthy.data.repository.MisAlimentosRepository
 import com.example.proyectohealthy.data.repository.PerfilRepository
@@ -24,19 +26,25 @@ class FavoritosViewModel @Inject constructor(
     private val misAlimentosRepository: MisAlimentosRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
+    // Estados existentes
     private val _alimentosFavoritos = MutableStateFlow<Map<String, FavoritoInfo>>(emptyMap())
     val alimentosFavoritos: StateFlow<Map<String, FavoritoInfo>> = _alimentosFavoritos.asStateFlow()
 
     private val _uiState = MutableStateFlow<FavoritosUiState>(FavoritosUiState.Loading)
     val uiState = _uiState.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(true)  // Cambiado a true inicialmente
-    val isLoading = _isLoading.asStateFlow()
-
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
+    // Nuevos estados para filtros
+    private val _filtros = MutableStateFlow(AlimentoFiltros())
+    val filtros = _filtros.asStateFlow()
+
+    private val _categoriasDisponibles = MutableStateFlow<List<String>>(emptyList())
+    val categoriasDisponibles = _categoriasDisponibles.asStateFlow()
+
     private var allItems = listOf<FavoritoItem>()
+    private var itemsSinFiltrar = listOf<FavoritoItem>()
 
     init {
         viewModelScope.launch {
@@ -45,43 +53,6 @@ class FavoritosViewModel @Inject constructor(
                 perfilRepository.getFavoritosFlow(userId).collect { favoritosMap ->
                     _alimentosFavoritos.value = favoritosMap
                     actualizarListaFavoritos(favoritosMap)
-                }
-            } catch (e: Exception) {
-                _uiState.value = FavoritosUiState.Error("Error al cargar favoritos: ${e.message}")
-            }
-        }
-    }
-
-    private fun cargarFavoritos() {
-        viewModelScope.launch {
-            try {
-                val userId = auth.currentUser?.uid ?: return@launch
-                perfilRepository.getFavoritosFlow(userId).collect { favoritosMap ->
-                    _uiState.value = FavoritosUiState.Loading
-                    val items = mutableListOf<FavoritoItem>()
-
-                    // Cargar todos los items favoritos
-                    favoritosMap.forEach { (id, info) ->
-                        when (info.tipo) {
-                            1 -> {
-                                alimentoRepository.getAlimentoById(id)?.let { alimento ->
-                                    items.add(FavoritoItem.Alimento(alimento))
-                                }
-                            }
-                            2 -> {
-                                misAlimentosRepository.getMiAlimentoById(userId, id)?.let { miAlimento ->
-                                    items.add(FavoritoItem.MiAlimento(miAlimento))
-                                }
-                            }
-                        }
-                    }
-
-                    allItems = items
-                    _uiState.value = if (items.isEmpty()) {
-                        FavoritosUiState.Empty
-                    } else {
-                        FavoritosUiState.Success(items)
-                    }
                 }
             } catch (e: Exception) {
                 _uiState.value = FavoritosUiState.Error("Error al cargar favoritos: ${e.message}")
@@ -108,27 +79,124 @@ class FavoritosViewModel @Inject constructor(
             }
         }
 
-        allItems = items
-        _uiState.value = if (items.isEmpty()) {
+        itemsSinFiltrar = items
+        _categoriasDisponibles.value = items.map {
+            when(it) {
+                is FavoritoItem.Alimento -> it.data.categoria
+                is FavoritoItem.MiAlimento -> it.data.categoria
+            }
+        }.distinct().sorted()
+
+        aplicarFiltros(items)
+    }
+
+    private fun aplicarFiltros(items: List<FavoritoItem> = itemsSinFiltrar) {
+        val filtrosActuales = _filtros.value
+        var resultados = items
+
+        // Aplicar filtros de categoría
+        if (filtrosActuales.categories.isNotEmpty()) {
+            resultados = resultados.filter { item ->
+                when (item) {
+                    is FavoritoItem.Alimento -> item.data.categoria in filtrosActuales.categories
+                    is FavoritoItem.MiAlimento -> item.data.categoria in filtrosActuales.categories
+                }
+            }
+        }
+
+        // Aplicar filtros nutricionales
+        resultados = resultados.filter { item ->
+            val cumpleFiltros = when (item) {
+                is FavoritoItem.Alimento -> {
+                    cumpleFiltrosNutricionales(
+                        calorias = item.data.calorias.toFloat(),
+                        proteinas = item.data.proteinas,
+                        carbohidratos = item.data.carbohidratos,
+                        grasas = item.data.grasas,
+                        filtros = filtrosActuales
+                    )
+                }
+                is FavoritoItem.MiAlimento -> {
+                    cumpleFiltrosNutricionales(
+                        calorias = item.data.calorias.toFloat(),
+                        proteinas = item.data.proteinas,
+                        carbohidratos = item.data.carbohidratos,
+                        grasas = item.data.grasas,
+                        filtros = filtrosActuales
+                    )
+                }
+            }
+            cumpleFiltros
+        }
+
+        // Aplicar ordenamiento
+        resultados = when (filtrosActuales.orderType) {
+            is OrderType.Name -> resultados.sortedBy { it.nombre }
+            is OrderType.Calories -> resultados.sortedBy {
+                when (it) {
+                    is FavoritoItem.Alimento -> it.data.calorias
+                    is FavoritoItem.MiAlimento -> it.data.calorias
+                }
+            }
+            is OrderType.Proteins -> resultados.sortedBy {
+                when (it) {
+                    is FavoritoItem.Alimento -> it.data.proteinas
+                    is FavoritoItem.MiAlimento -> it.data.proteinas
+                }
+            }
+            is OrderType.Carbs -> resultados.sortedBy {
+                when (it) {
+                    is FavoritoItem.Alimento -> it.data.carbohidratos
+                    is FavoritoItem.MiAlimento -> it.data.carbohidratos
+                }
+            }
+            is OrderType.Fats -> resultados.sortedBy {
+                when (it) {
+                    is FavoritoItem.Alimento -> it.data.grasas
+                    is FavoritoItem.MiAlimento -> it.data.grasas
+                }
+            }
+        }
+
+        if (!filtrosActuales.isAscending) {
+            resultados = resultados.reversed()
+        }
+
+        allItems = resultados
+        _uiState.value = if (resultados.isEmpty()) {
             FavoritosUiState.Empty
         } else {
-            FavoritosUiState.Success(items)
+            FavoritosUiState.Success(resultados)
+        }
+    }
+
+    private fun cumpleFiltrosNutricionales(
+        calorias: Float,
+        proteinas: Float,
+        carbohidratos: Float,
+        grasas: Float,
+        filtros: AlimentoFiltros
+    ): Boolean {
+        return (!filtros.caloriesRange.isEnabled || calorias in filtros.caloriesRange.min..filtros.caloriesRange.max) &&
+                (!filtros.proteinsRange.isEnabled || proteinas in filtros.proteinsRange.min..filtros.proteinsRange.max) &&
+                (!filtros.carbsRange.isEnabled || carbohidratos in filtros.carbsRange.min..filtros.carbsRange.max) &&
+                (!filtros.fatsRange.isEnabled || grasas in filtros.fatsRange.min..filtros.fatsRange.max)
+    }
+
+    fun updateFiltros(nuevosFiltros: AlimentoFiltros) {
+        viewModelScope.launch {
+            _filtros.value = nuevosFiltros
+            aplicarFiltros()
         }
     }
 
     fun searchFavoritos(query: String) {
         if (query.isEmpty()) {
-            // Si no hay búsqueda, mostrar todos los favoritos
-            _uiState.value = if (allItems.isEmpty()) {
-                FavoritosUiState.Empty
-            } else {
-                FavoritosUiState.Success(allItems)
-            }
+            aplicarFiltros()
             return
         }
 
-        // Filtrar los items según la búsqueda
-        val filteredItems = allItems.filter { item ->
+        val itemsFiltrados = itemsSinFiltrar.filter { item ->
             when (item) {
                 is FavoritoItem.Alimento ->
                     item.data.nombre.contains(query, ignoreCase = true)
@@ -136,15 +204,10 @@ class FavoritosViewModel @Inject constructor(
                     item.data.nombre.contains(query, ignoreCase = true)
             }
         }
-
-        _uiState.value = if (filteredItems.isEmpty()) {
-            if (allItems.isEmpty()) FavoritosUiState.Empty else FavoritosUiState.Success(emptyList())
-        } else {
-            FavoritosUiState.Success(filteredItems)
-        }
+        aplicarFiltros(itemsFiltrados)
     }
 
-
+    // Mantener el resto de las funciones existentes
     fun removeFavorito(itemId: String) {
         viewModelScope.launch {
             try {
@@ -160,11 +223,7 @@ class FavoritosViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
-
-                // Actualizar Firebase primero
                 perfilRepository.toggleFavorito(userId, itemId, tipo)
-
-                // El estado se actualizará automáticamente a través del Flow en init
             } catch (e: Exception) {
                 _uiState.value = FavoritosUiState.Error("Error al actualizar favorito: ${e.message}")
             }
@@ -175,6 +234,7 @@ class FavoritosViewModel @Inject constructor(
         return _alimentosFavoritos.value.containsKey(itemId)
     }
 
+    // Clases existentes
     sealed class FavoritosUiState {
         object Loading : FavoritosUiState()
         object Empty : FavoritosUiState()
@@ -194,34 +254,6 @@ class FavoritosViewModel @Inject constructor(
         data class MiAlimento(val data: com.example.proyectohealthy.data.local.entity.MisAlimentos) : FavoritoItem() {
             override val id: String = data.id
             override val nombre: String = data.nombre
-        }
-    }
-
-
-
-    // Función modificada para manejar adecuadamente el estado de los favoritos
-
-
-
-    fun deleteMiAlimento(alimentoId: String, favoritosViewModel: FavoritosViewModel) {
-        viewModelScope.launch {
-            val userId = auth.currentUser?.uid ?: return@launch
-            try {
-                // Paso 1: Verificar si el alimento está en favoritos
-                val esFavorito = favoritosViewModel.alimentosFavoritos.value.containsKey(alimentoId)
-
-                // Paso 2: Si está en favoritos, eliminarlo de la lista de favoritos
-                if (esFavorito) {
-                    favoritosViewModel.toggleFavorito(alimentoId, 2) // 2 representa que es un `MiAlimento`
-                }
-
-                // Paso 3: Eliminar el alimento del repositorio de alimentos
-                misAlimentosRepository.deleteMiAlimento(userId, alimentoId)
-
-            } catch (e: Exception) {
-                // Manejar error
-                _error.value = "Error al eliminar mi alimento: ${e.message}"
-            }
         }
     }
 }
