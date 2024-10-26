@@ -3,23 +3,17 @@ package com.example.proyectohealthy.screen
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.proyectohealthy.components.CustomBottomBar
@@ -27,7 +21,7 @@ import com.example.proyectohealthy.components.CustomTopBar
 import com.example.proyectohealthy.components.DateSelector
 import com.example.proyectohealthy.components.IngresoAlimentoComponent
 import com.example.proyectohealthy.components.RegistroComidaCard
-import com.example.proyectohealthy.components.bottomsheets.AlimentoBottomSheet
+import com.example.proyectohealthy.components.bottomsheets.RegistroAlimentoSheet
 import com.example.proyectohealthy.components.homeComponents.ConsumoAguaSection
 import com.example.proyectohealthy.components.homeComponents.ProgresoNutricionalComponent
 import com.example.proyectohealthy.data.local.entity.Alimento
@@ -45,7 +39,7 @@ import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
 import java.time.LocalDate
 import java.util.Date
-import com.example.proyectohealthy.components.bottomsheets.EjercicioBottomSheet as EjercicioBottomSheet1
+import com.example.proyectohealthy.components.bottomsheets.EjercicioBottomSheet
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -202,7 +196,7 @@ fun HomeScreen(
 
     // Diálogo de búsqueda de alimentos
     if (showAlimentoBottomSheet) {
-        AlimentoBottomSheet(
+        RegistroAlimentoSheet(
             onDismiss = { showAlimentoBottomSheet = false },
             onAlimentoSelected = { alimento, cantidad, tipoComida ->
                 registroComidaViewModel.agregarAlimento(
@@ -229,7 +223,7 @@ fun HomeScreen(
     // Nuevo BottomSheet para agregar ejercicio
 
     if (showEjercicioBottomSheet) {
-        EjercicioBottomSheet1(
+        EjercicioBottomSheet(
             ejercicios = ejercicios,
             onDismiss = { showEjercicioBottomSheet = false },
             onEjercicioSelected = { idEjercicio, duracion ->

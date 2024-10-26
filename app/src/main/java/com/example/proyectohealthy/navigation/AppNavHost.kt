@@ -11,6 +11,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.proyectohealthy.screen.AlimentosScreen
 
 import com.example.proyectohealthy.screen.HomeScreen
 import com.example.proyectohealthy.screen.auth.LoginScreen
@@ -119,7 +120,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             )
         }
         composable("alimentos") {
-
+            AlimentosScreen(
+                navController = navController,
+                perfilViewModel = perfilViewModel
+                )
         }
         composable("profile") {
             ProfileScreen(

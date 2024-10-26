@@ -63,7 +63,7 @@ fun MisAlimentosTab(
             Text("Agregar Nuevo Alimento")
         }
 
-        Box(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             if (misAlimentos.isEmpty()) {
                 if (currentQuery.isNotEmpty()) {
                     EmptySearchResult()
