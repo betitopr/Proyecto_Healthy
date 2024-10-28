@@ -15,6 +15,16 @@ android {
     namespace = "com.example.proyectohealthy"
     compileSdk = 34
 
+    // AQUÍ VA LA NUEVA CONFIGURACIÓN
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug-keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.proyectohealthy"
         minSdk = 24
@@ -30,6 +40,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
