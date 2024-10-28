@@ -19,7 +19,8 @@ data class Perfil(
     val biografia: String? = null,
     val favoritos: Map<String, FavoritoInfo> = emptyMap(),
     val alimentosRecientes: Map<String, Boolean> = emptyMap(),
-    val premium: Boolean = false
+    val premium: Boolean = false,
+    var perfilCompleto: Boolean = false
 )
 data class FavoritoInfo(
     val id: String = "",

@@ -6,6 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -35,31 +38,37 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
 
     val authState by authViewModel.authState.collectAsState()
-    val isPerfilCompleto by perfilViewModel.isPerfilCompleto.collectAsState()
+    var hasNavigated by remember { mutableStateOf(false) }
+    val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
 
-    LaunchedEffect(Unit) {
-        authViewModel.checkAuthState()
-    }
 
-    LaunchedEffect(authState, isPerfilCompleto) {
-        when (authState) {
-            is AuthViewModel.AuthState.Authenticated -> {
-                if (isPerfilCompleto) {
-                    navController.navigate("home") {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                } else {
-                    navController.navigate("questionnaire") {
-                        popUpTo("splash") { inclusive = true }
+    LaunchedEffect(authState, currentPerfil) {
+        perfilViewModel.checkPerfilCompleto()
+        if (!hasNavigated) {
+            when (authState) {
+                is AuthViewModel.AuthState.Authenticated -> {
+                    currentPerfil?.let { perfil ->
+                        if (perfil.perfilCompleto) {
+                            navController.navigate("home") {
+                                popUpTo("splash") { inclusive = true }
+                            }
+                            hasNavigated = true
+                        } else {
+                            navController.navigate("questionnaire") {
+                                popUpTo("splash") { inclusive = true }
+                            }
+                            hasNavigated = true
+                        }
                     }
                 }
-            }
-            is AuthViewModel.AuthState.NotAuthenticated -> {
-                navController.navigate("auth") {
-                    popUpTo("splash") { inclusive = true }
+                is AuthViewModel.AuthState.NotAuthenticated -> {
+                    navController.navigate("auth") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                    hasNavigated = true
                 }
+                else -> {}
             }
-            else -> {}
         }
     }
 
@@ -73,7 +82,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate("register") },
                 onNavigateToHome = {
-                    if (isPerfilCompleto) {
+                    if (currentPerfil?.perfilCompleto == true) {
                         navController.navigate("home") {
                             popUpTo("auth") { inclusive = true }
                         }

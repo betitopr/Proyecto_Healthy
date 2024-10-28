@@ -32,6 +32,8 @@ class PerfilViewModel @Inject constructor(
     private val _isEditing = MutableStateFlow(false)
     val isEditing = _isEditing.asStateFlow()
 
+
+
     init {
         observeAuthChanges()
         viewModelScope.launch {
@@ -71,11 +73,22 @@ class PerfilViewModel @Inject constructor(
         Log.d("PerfilViewModel", "Perfil actual limpiado")
     }
 
-    private fun checkPerfilCompleto() {
+    fun checkPerfilCompleto() {
         _currentPerfil.value?.let { perfil ->
-            _isPerfilCompleto.value = perfil.altura > 0f && perfil.pesoActual > 0f && perfil.edad > 0
+            perfil.perfilCompleto = perfilTieneCamposCompletos(perfil)
         }
     }
+
+    private fun perfilTieneCamposCompletos(perfil: Perfil): Boolean {
+        return perfil.altura > 0f &&
+                perfil.pesoActual > 0f &&
+                perfil.edad > 0 &&
+                perfil.genero.isNotBlank() &&
+                perfil.objetivo.isNotBlank() &&
+                perfil.nivelActividad.isNotBlank()
+    }
+
+
 
     private fun createDefaultPerfil(uid: String): Perfil {
         return Perfil(

@@ -32,8 +32,18 @@ fun ProfileScreen(
     val isEditing by perfilViewModel.isEditing.collectAsState()
     var editedPerfil by remember { mutableStateOf(perfil) }
 
-    LaunchedEffect(perfil) {
-        editedPerfil = perfil
+    val authState by authViewModel.authState.collectAsState()
+
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthViewModel.AuthState.NotAuthenticated -> {
+                navController.navigate("auth") {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            else -> {}
+        }
     }
 
     Scaffold(
