@@ -59,15 +59,18 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-
+    // Método para registro/login con Google
     fun signInWithGoogle(account: GoogleSignInAccount) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
                 Log.d("AuthViewModel", "Iniciando autenticación con Google")
+                // Obtener el token ID de la cuenta de Google
                 val idToken = account.idToken
                 if (idToken != null) {
+                    // Crear credencial de Firebase con el token
                     val credential = GoogleAuthProvider.getCredential(idToken, null)
+                    // Autenticar con Firebase
                     auth.signInWithCredential(credential).await()
                     // Después de la autenticación exitosa, creamos o actualizamos el perfil
                     createOrUpdateUserProfile()
@@ -83,12 +86,14 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-
+    // Método para registro tradicional con email/password
     fun signUp(email: String, password: String) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
+                // Crear usuario en Firebase Auth
                 auth.createUserWithEmailAndPassword(email, password).await()
+                // Crear o actualizar perfil del usuario
                 createOrUpdateUserProfile()
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
@@ -131,7 +136,7 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-
+    // Método para crear o actualizar el perfil del usuario
     private suspend fun createOrUpdateUserProfile() {
         val user = auth.currentUser ?: run {
             _authState.value = AuthState.Error("No authenticated user found")
@@ -166,47 +171,14 @@ class AuthViewModel @Inject constructor(
             _authState.value = AuthState.Error("Failed to create or update user profile: ${e.message}")
         }
     }
-
-    /*
-    private suspend fun createOrUpdateUserProfile() {
-        val user = auth.currentUser ?: run {
-            _authState.value = AuthState.Error("No authenticated user found")
-            return
-        }
-        try {
-            val perfil = Perfil(
-                uid_firebase = user.uid,
-                Nombre = user.displayName?.split(" ")?.firstOrNull() ?: "",
-                Apellido = user.displayName?.split(" ")?.lastOrNull() ?: "",
-                Genero = "",
-                Altura = 0f,
-                Edad = 0,
-                Peso_Actual = 0f,
-                Peso_Objetivo = 0f,
-                Nivel_Actividad = "",
-                Objetivo = "",
-                Como_Conseguirlo = "",
-                Entrenamiento_Fuerza = "",
-                Perfil_Imagen = user.photoUrl?.toString() ?: "",
-                Biografia = ""
-            )
-            userRepository.createOrUpdatePerfil(perfil)
-            Log.d("AuthViewModel", "Perfil de usuario creado o actualizado exitosamente")
-            _authState.value = AuthState.Authenticated
-        } catch (e: Exception) {
-            Log.e("AuthViewModel", "Error al crear o actualizar el perfil de usuario", e)
-            _authState.value = AuthState.Error("Failed to create or update user profile: ${e.message}")
-        }
-    }
-*/
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
-
+//Los estados de autentificacion
     sealed class AuthState {
-        object Initial : AuthState()
-        object Loading : AuthState()
-        object Authenticated : AuthState()
-        object NotAuthenticated : AuthState()
-        data class Error(val message: String) : AuthState()
+        object Initial : AuthState()//Estado inicial
+        object Loading : AuthState()//Durante el proceso de autenticación
+        object Authenticated : AuthState()//Autenticación exitosa
+        object NotAuthenticated : AuthState()//No hay usuario autenticado
+        data class Error(val message: String) : AuthState()//Error durante la autenticación
     }
 }
 

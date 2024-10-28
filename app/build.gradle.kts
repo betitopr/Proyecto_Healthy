@@ -129,6 +129,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    //Autentificacion google
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
