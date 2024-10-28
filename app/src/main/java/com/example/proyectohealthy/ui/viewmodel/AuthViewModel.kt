@@ -1,17 +1,22 @@
 package com.example.proyectohealthy.ui.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.PrimaryKey
+import androidx.compose.ui.platform.LocalContext
+import com.example.proyectohealthy.R
 import com.example.proyectohealthy.data.local.entity.Perfil
 import com.example.proyectohealthy.data.repository.PerfilRepository
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -21,7 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val auth: FirebaseAuth,
-    private val userRepository: PerfilRepository
+    private val userRepository: PerfilRepository,
+    @ApplicationContext private val context: Context // Inyectar el contexto
 ) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
     val authState = _authState.asStateFlow()
@@ -94,9 +100,31 @@ class AuthViewModel @Inject constructor(
     fun signOut() {
         viewModelScope.launch {
             try {
+                // Obtener el cliente de Google Sign In
+                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(context.getString(R.string.default_web_client_id))
+                    .requestEmail()
+                    .build()
+                val googleSignInClient = GoogleSignIn.getClient(context, gso)
+
+                // Cerrar sesión de Google
+                try {
+                    googleSignInClient.signOut().await()
+                } catch (e: Exception) {
+                    Log.e("AuthViewModel", "Error al cerrar sesión de Google", e)
+                }
+
                 auth.signOut()
+
+                try {
+                    googleSignInClient.revokeAccess().await()
+                } catch (e: Exception) {
+                    Log.e("AuthViewModel", "Error al revocar acceso", e)
+                }
+
                 _authState.value = AuthState.NotAuthenticated
-                Log.d("AuthViewModel", "Sesión cerrada exitosamente y perfil limpiado")
+
+                Log.d("AuthViewModel", "Sesión cerrada exitosamente")
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error al cerrar sesión: ${e.message}")
                 Log.e("AuthViewModel", "Error al cerrar sesión", e)
