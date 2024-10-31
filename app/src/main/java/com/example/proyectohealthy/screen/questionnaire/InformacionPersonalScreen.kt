@@ -28,7 +28,6 @@ fun InformacionPersonalScreen(
     onPreviousClick: () -> Unit
 ) {
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
-
     var showGeneroSheet by remember { mutableStateOf(false) }
     var showEdadSheet by remember { mutableStateOf(false) }
     var showAlturaSheet by remember { mutableStateOf(false) }
@@ -53,10 +52,39 @@ fun InformacionPersonalScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            InfoButton(text = "Género: ${currentPerfil?.genero ?: "No seleccionado"}", onClick = { showGeneroSheet = true })
-            InfoButton(text = "Edad: ${currentPerfil?.edad ?: "No seleccionada"}", onClick = { showEdadSheet = true })
-            InfoButton(text = "Altura: ${currentPerfil?.altura?.toInt() ?: "No seleccionada"} cm", onClick = { showAlturaSheet = true })
-            InfoButton(text = "Peso: ${String.format("%.1f", currentPerfil?.pesoActual ?: 0f)} kg", onClick = { showPesoSheet = true })
+            InfoButton(
+                text = "Género: ${currentPerfil?.genero ?: "No seleccionado"}",
+                onClick = { showGeneroSheet = true }
+            )
+
+            InfoButton(
+                text = "Edad: ${currentPerfil?.edad ?: "No seleccionada"}",
+                onClick = { showEdadSheet = true }
+            )
+
+            // Altura: Mostrar en el formato preferido
+            val alturaText = currentPerfil?.let { perfil ->
+                if (perfil.unidadesPreferences.sistemaAltura == "Imperial (ft/in)") {
+                    val totalPulgadas = (perfil.altura / 2.54).toInt()
+                    val pies = totalPulgadas / 12
+                    val pulgadas = totalPulgadas % 12
+                    "Altura: $pies' $pulgadas\""
+                } else {
+                    "Altura: ${perfil.altura.toInt()} cm"
+                }
+            } ?: "Altura: No seleccionada"
+            InfoButton(text = alturaText, onClick = { showAlturaSheet = true })
+
+            // Peso: Mostrar en el formato preferido
+            val pesoText = currentPerfil?.let { perfil ->
+                if (perfil.unidadesPreferences.sistemaPeso == "Imperial (lb)") {
+                    val pesoLb = perfil.pesoActual * 2.20462f
+                    "Peso: ${"%.1f".format(pesoLb)} lb"
+                } else {
+                    "Peso: ${"%.1f".format(perfil.pesoActual)} kg"
+                }
+            } ?: "Peso: No seleccionado"
+            InfoButton(text = pesoText, onClick = { showPesoSheet = true })
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -91,9 +119,14 @@ fun InfoButton(text: String, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
     ) {
-        Text(text, color = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }
 
@@ -180,23 +213,111 @@ fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
     val initialIndex = (currentAltura - 140).coerceIn(0, alturas.size - 1)
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     var selectedAltura by remember { mutableStateOf(currentAltura) }
+    val currentPerfil by viewModel.currentPerfil.collectAsState()
+    val sistemaAltura = currentPerfil?.unidadesPreferences?.sistemaAltura ?: "Métrico (cm)"
+
+    // Convertir la altura actual (cm) a pies y pulgadas si es necesario
+    val alturaActualCm = currentPerfil?.altura?.toInt() ?: 170
+    val (pies, pulgadas) = if (sistemaAltura == "Imperial (ft/in)") {
+        val totalPulgadas = (alturaActualCm / 2.54).toInt()
+        Pair(totalPulgadas / 12, totalPulgadas % 12)
+    } else {
+        Pair(0, 0)
+    }
+
+    // Estados para los selectores
+    val alturasCm = (140..220).toList()
+    val piesList = (4..7).toList()
+    val pulgadasList = (0..11).toList()
+
+    // Estados para las listas
+    val listStateCm = rememberLazyListState(
+        initialFirstVisibleItemIndex = (alturaActualCm - 140).coerceIn(0, alturasCm.size - 1)
+    )
+    val listStatePies = rememberLazyListState(
+        initialFirstVisibleItemIndex = piesList.indexOf(pies).coerceIn(0, piesList.size - 1)
+    )
+    val listStatePulgadas = rememberLazyListState(
+        initialFirstVisibleItemIndex = pulgadas
+    )
+
+    // Estado para el valor seleccionado
+    var selectedAlturaCm by remember { mutableStateOf(alturaActualCm) }
 
     FullScreenSelector {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Selecciona tu altura", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Selecciona tu altura",
+                style = MaterialTheme.typography.titleLarge
+            )
             Spacer(modifier = Modifier.height(16.dp))
-            Box(modifier = Modifier.height(200.dp)) {
-                NumberSelector(
-                    items = alturas,
-                    listState = listState,
-                    onValueSelected = { selectedAltura = it },
-                    itemToString = { "$it cm" }
+
+            if (sistemaAltura == "Métrico (cm)") {
+                // Selector único para centímetros
+                Box(modifier = Modifier.height(200.dp)) {
+                    NumberSelector(
+                        items = alturasCm,
+                        listState = listStateCm,
+                        onValueSelected = { selectedAlturaCm = it },
+                        itemToString = { "$it cm" }
+                    )
+                }
+            } else {
+                // Selectores duales para pies y pulgadas
+                Row(modifier = Modifier.height(200.dp)) {
+                    // Selector de pies
+                    Box(modifier = Modifier.weight(1f)) {
+                        NumberSelector(
+                            items = piesList,
+                            listState = listStatePies,
+                            onValueSelected = { pies ->
+                                val pulgadasActuales = listStatePulgadas.firstVisibleItemIndex
+                                selectedAlturaCm = ((pies * 12 + pulgadasActuales) * 2.54).toInt()
+                            },
+                            itemToString = { "$it ft" }
+                        )
+                    }
+
+                    // Selector de pulgadas
+                    Box(modifier = Modifier.weight(1f)) {
+                        NumberSelector(
+                            items = pulgadasList,
+                            listState = listStatePulgadas,
+                            onValueSelected = { pulgadas ->
+                                val piesActuales = piesList[listStatePies.firstVisibleItemIndex]
+                                selectedAlturaCm = ((piesActuales * 12 + pulgadas) * 2.54).toInt()
+                            },
+                            itemToString = { "$it in" }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Mostrar equivalencia
+            if (sistemaAltura == "Imperial (ft/in)") {
+                Text(
+                    text = "≈ ${selectedAlturaCm} cm",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                val totalPulgadas = (selectedAlturaCm / 2.54).toInt()
+                val piesEquivalentes = totalPulgadas / 12
+                val pulgadasEquivalentes = totalPulgadas % 12
+                Text(
+                    text = "≈ $piesEquivalentes ft $pulgadasEquivalentes in",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
             Spacer(modifier = Modifier.height(16.dp))
+
             Button(
                 onClick = {
-                    viewModel.updateAltura(selectedAltura.toFloat())
+                    viewModel.updateAltura(selectedAlturaCm.toFloat())
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -209,48 +330,103 @@ fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
 
 @Composable
 fun PesoSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
-    val pesoEntero = (30..200).toList()
+    val currentPerfil by viewModel.currentPerfil.collectAsState()
+    val sistemaPeso = currentPerfil?.unidadesPreferences?.sistemaPeso ?: "Métrico (kg)"
+
+    // Convertir el peso actual a la unidad seleccionada
+    val pesoActualKg = currentPerfil?.pesoActual ?: 70f
+    val pesoMostrado = if (sistemaPeso == "Imperial (lb)") {
+        pesoActualKg * 2.20462f // Convertir a libras
+    } else {
+        pesoActualKg
+    }
+
+    // Rangos según el sistema
+    val pesoEntero = if (sistemaPeso == "Imperial (lb)") {
+        (66..440).toList() // Rango en libras
+    } else {
+        (30..200).toList() // Rango en kg
+    }
     val pesoDecimal = (0..9).toList()
-    val currentPeso = viewModel.currentPerfil.collectAsState().value?.pesoActual ?: 70f
-    val initialEnteroIndex = (currentPeso.toInt() - 30).coerceIn(0, pesoEntero.size - 1)
-    val initialDecimalIndex = ((currentPeso % 1) * 10).toInt().coerceIn(0, pesoDecimal.size - 1)
+
+    // Calcular posiciones iniciales
+    val initialEnteroIndex = (pesoMostrado.toInt() - pesoEntero.first()).coerceIn(0, pesoEntero.size - 1)
+    val initialDecimalIndex = ((pesoMostrado % 1) * 10).toInt().coerceIn(0, 9)
+
     val listStateEntero = rememberLazyListState(initialFirstVisibleItemIndex = initialEnteroIndex)
     val listStateDecimal = rememberLazyListState(initialFirstVisibleItemIndex = initialDecimalIndex)
-    var selectedPeso by remember { mutableStateOf(currentPeso) }
+
+    var selectedPeso by remember { mutableStateOf(pesoMostrado) }
 
     FullScreenSelector {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Selecciona tu peso", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = if (sistemaPeso == "Imperial (lb)") "Selecciona tu peso (lb)" else "Selecciona tu peso (kg)",
+                style = MaterialTheme.typography.titleLarge
+            )
             Spacer(modifier = Modifier.height(16.dp))
+
             Row(modifier = Modifier.height(200.dp)) {
-                NumberSelector(
-                    items = pesoEntero,
-                    listState = listStateEntero,
-                    modifier = Modifier.weight(1f),
-                    onValueSelected = { entero ->
-                        val decimal = pesoDecimal[listStateDecimal.firstVisibleItemIndex]
-                        selectedPeso = entero + decimal / 10f
-                    }
-                )
+                // Selector entero
+                Box(modifier = Modifier.weight(1f)) {
+                    NumberSelector(
+                        items = pesoEntero,
+                        listState = listStateEntero,
+                        onValueSelected = { entero ->
+                            val decimal = pesoDecimal[listStateDecimal.firstVisibleItemIndex]
+                            selectedPeso = entero + decimal / 10f
+                        }
+                    )
+                }
+
                 Text(
                     ".",
                     style = MaterialTheme.typography.headlineLarge,
                     modifier = Modifier.align(Alignment.CenterVertically)
                 )
-                NumberSelector(
-                    items = pesoDecimal,
-                    listState = listStateDecimal,
-                    modifier = Modifier.weight(0.5f),
-                    onValueSelected = { decimal ->
-                        val entero = pesoEntero[listStateEntero.firstVisibleItemIndex]
-                        selectedPeso = entero + decimal / 10f
-                    }
-                )
+
+                // Selector decimal
+                Box(modifier = Modifier.weight(0.5f)) {
+                    NumberSelector(
+                        items = pesoDecimal,
+                        listState = listStateDecimal,
+                        onValueSelected = { decimal ->
+                            val entero = pesoEntero[listStateEntero.firstVisibleItemIndex]
+                            selectedPeso = entero + decimal / 10f
+                        }
+                    )
+                }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Mostrar equivalencia
+            val pesoEquivalente = if (sistemaPeso == "Imperial (lb)") {
+                selectedPeso / 2.20462f // Convertir de libras a kg
+            } else {
+                selectedPeso * 2.20462f // Convertir de kg a libras
+            }
+
+            Text(
+                text = if (sistemaPeso == "Imperial (lb)") {
+                    "≈ ${"%.1f".format(pesoEquivalente)} kg"
+                } else {
+                    "≈ ${"%.1f".format(pesoEquivalente)} lb"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Button(
                 onClick = {
-                    viewModel.updatePesoActual(selectedPeso)
+                    val pesoGuardadoKg = if (sistemaPeso == "Imperial (lb)") {
+                        selectedPeso / 2.20462f // Guardar en kg
+                    } else {
+                        selectedPeso
+                    }
+                    viewModel.updatePesoActual(pesoGuardadoKg)
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth()

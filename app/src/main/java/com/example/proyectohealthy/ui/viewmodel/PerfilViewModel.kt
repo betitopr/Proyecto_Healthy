@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Perfil
+import com.example.proyectohealthy.data.local.entity.UnidadesPreferences
 import com.example.proyectohealthy.data.repository.PerfilRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -123,6 +124,48 @@ class PerfilViewModel @Inject constructor(
 
     fun setEditing(isEditing: Boolean) {
         _isEditing.value = isEditing
+    }
+
+    fun updateUnidadesPreferencias(
+        sistemaPeso: String,
+        sistemaAltura: String,
+        sistemaVolumen: String
+    ) = updatePerfilField { uid ->
+        _currentPerfil.value?.let { currentPerfil ->
+            val updatedPerfil = currentPerfil.copy(
+                unidadesPreferences = UnidadesPreferences(
+                    sistemaPeso = sistemaPeso,
+                    sistemaAltura = sistemaAltura,
+                    sistemaVolumen = sistemaVolumen
+                )
+            )
+            perfilRepository.createOrUpdatePerfil(updatedPerfil)
+        }
+    }
+
+    // Funciones de conversión de unidades
+    fun convertirPeso(valor: Float, desde: String, hasta: String): Float {
+        return when {
+            desde == "Métrico (kg)" && hasta == "Imperial (lb)" -> valor * 2.20462f
+            desde == "Imperial (lb)" && hasta == "Métrico (kg)" -> valor / 2.20462f
+            else -> valor
+        }
+    }
+
+    fun convertirAltura(valor: Float, desde: String, hasta: String): Float {
+        return when {
+            desde == "Métrico (cm)" && hasta == "Imperial (ft/in)" -> valor / 30.48f
+            desde == "Imperial (ft/in)" && hasta == "Métrico (cm)" -> valor * 30.48f
+            else -> valor
+        }
+    }
+
+    fun convertirVolumen(valor: Float, desde: String, hasta: String): Float {
+        return when {
+            desde == "Métrico (ml)" && hasta == "Imperial (fl oz)" -> valor * 0.033814f
+            desde == "Imperial (fl oz)" && hasta == "Métrico (ml)" -> valor / 0.033814f
+            else -> valor
+        }
     }
 
     fun updatePerfilField(updateFunction: suspend (String) -> Unit) {

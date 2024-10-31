@@ -19,6 +19,7 @@ import com.example.proyectohealthy.screen.questionnaire.ObjetivoScreen
 import com.example.proyectohealthy.screen.questionnaire.PesoObjetivoScreen
 import com.example.proyectohealthy.screen.questionnaire.ProgresoScreen
 import com.example.proyectohealthy.screen.questionnaire.SummaryScreen
+import com.example.proyectohealthy.screen.questionnaire.UnidadesPreferencesScreen
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.ui.viewmodel.NutricionViewModel
 
@@ -34,8 +35,15 @@ fun QuestionnaireHost(
         composable("objetivo") {
             ObjetivoScreen(
                 perfilViewModel = perfilViewModel,
-                onNextClick = { navController.navigate("informacion_personal") },
+                onNextClick = { navController.navigate("unidades_preferences") },
                 onPreviousClick = {  }
+            )
+        }
+        composable("unidades_preferences") {
+            UnidadesPreferencesScreen(
+                perfilViewModel = perfilViewModel,
+                onNextClick = { navController.navigate("informacion_personal") },
+                onPreviousClick = { navController.popBackStack() }
             )
         }
         composable("informacion_personal") {

@@ -20,9 +20,16 @@ data class Perfil(
     val favoritos: Map<String, FavoritoInfo> = emptyMap(),
     val alimentosRecientes: Map<String, Boolean> = emptyMap(),
     val premium: Boolean = false,
-    var perfilCompleto: Boolean = false
+    var perfilCompleto: Boolean = false,
+    val unidadesPreferences: UnidadesPreferences = UnidadesPreferences()
 )
 data class FavoritoInfo(
     val id: String = "",
     val tipo: Int = 0, // 1 para Alimento, 2 para MisAlimentos
+)
+
+data class UnidadesPreferences(
+    val sistemaPeso: String = "Métrico (kg)",
+    val sistemaAltura: String = "Métrico (cm)",
+    val sistemaVolumen: String = "Métrico (ml)"
 )
