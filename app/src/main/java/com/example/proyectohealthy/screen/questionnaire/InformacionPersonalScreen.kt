@@ -86,6 +86,8 @@ fun InformacionPersonalScreen(
             } ?: "Peso: No seleccionado"
             InfoButton(text = pesoText, onClick = { showPesoSheet = true })
 
+            Spacer(modifier = Modifier.weight(1f))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -329,7 +331,10 @@ fun AlturaSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun PesoSelector(viewModel: PerfilViewModel, onDismiss: () -> Unit) {
+fun PesoSelector(
+    viewModel: PerfilViewModel,
+    onDismiss: () -> Unit
+) {
     val currentPerfil by viewModel.currentPerfil.collectAsState()
     val sistemaPeso = currentPerfil?.unidadesPreferences?.sistemaPeso ?: "Métrico (kg)"
 

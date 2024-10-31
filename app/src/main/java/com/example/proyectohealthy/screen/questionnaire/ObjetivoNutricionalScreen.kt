@@ -96,6 +96,8 @@ fun ObjetivoNutricionalScreen(
                 }
                 is NutricionUiState.Error -> Text("Error: ${state.message}")
                 NutricionUiState.Initial -> Text("Esperando datos...")
+
+                else -> {}
             }
         }
     }
