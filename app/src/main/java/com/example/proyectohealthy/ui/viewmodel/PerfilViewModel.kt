@@ -236,11 +236,14 @@ class PerfilViewModel @Inject constructor(
 
     private fun calcularMetasNutricionales(perfil: Perfil?) {
         perfil?.let {
+            // Cambiamos la fórmula de TMB para usar la de Harris-Benedict
             val tmb = when (it.genero) {
-                "Masculino" -> 88.362 + (13.397 * it.pesoActual) + (4.799 * it.altura) - (5.677 * it.edad)
-                "Femenino" -> 447.593 + (9.247 * it.pesoActual) + (3.098 * it.altura) - (4.330 * it.edad)
+                "Masculino" -> (10 * it.pesoActual) + (6.25 * it.altura) - (5 * it.edad) + 5
+                "Femenino" -> (10 * it.pesoActual) + (6.25 * it.altura) - (5 * it.edad) - 161
                 else -> 0.0
             }
+
+
 
             val factorActividad = when (it.nivelActividad) {
                 "Sedentario" -> 1.2
