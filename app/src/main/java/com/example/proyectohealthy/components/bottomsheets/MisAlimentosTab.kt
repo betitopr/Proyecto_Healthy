@@ -63,34 +63,39 @@ fun MisAlimentosTab(
             Text("Agregar Nuevo Alimento")
         }
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (misAlimentos.isEmpty()) {
-                if (currentQuery.isNotEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+            when {
+                currentQuery.isNotEmpty() && misAlimentos.isEmpty() -> {
                     EmptySearchResult()
-                } else {
-                    LoadingIndicator()
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(misAlimentos) { miAlimento ->
-                        MiAlimentoItem(
-                            miAlimento = miAlimento,
-                            isFavorito = favoritos.containsKey(miAlimento.id),
-                            onFavoritoClick = {
-                                favoritosViewModel.toggleFavorito(miAlimento.id, 2)
-                            },
-                            onEditClick = {
-                                showEditDialog = miAlimento
-                            },
-                            onDeleteClick = {
-                                showDeleteDialog = miAlimento
-                            },
-                            onClick = { onMiAlimentoSelected(miAlimento) }
-                        )
+                misAlimentos.isEmpty() -> {
+                    EmptyMisAlimentosContent()
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(misAlimentos) { miAlimento ->
+                            MiAlimentoItem(
+                                miAlimento = miAlimento,
+                                isFavorito = favoritos.containsKey(miAlimento.id),
+                                onFavoritoClick = {
+                                    favoritosViewModel.toggleFavorito(miAlimento.id, 2)
+                                },
+                                onEditClick = {
+                                    showEditDialog = miAlimento
+                                },
+                                onDeleteClick = {
+                                    showDeleteDialog = miAlimento
+                                },
+                                onClick = { onMiAlimentoSelected(miAlimento) }
+                            )
+                        }
                     }
                 }
             }
@@ -139,6 +144,48 @@ fun MisAlimentosTab(
 }
 
 @Composable
+fun EmptyMisAlimentosContent(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = null,
+            modifier = Modifier
+                .size(64.dp)
+                .padding(bottom = 16.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        )
+        Text(
+            text = "No tienes alimentos personalizados",
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Agrega tus propios alimentos para un seguimiento más personalizado",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Presiona el botón '+' para agregar tu primer alimento",
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
 fun EmptySearchResult() {
     Column(
         modifier = Modifier
@@ -160,6 +207,7 @@ fun EmptySearchResult() {
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Intenta con una búsqueda diferente",
             style = MaterialTheme.typography.bodyMedium,
