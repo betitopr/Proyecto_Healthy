@@ -2,11 +2,17 @@ package com.example.proyectohealthy.components
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.NavigateBefore
+import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.NavigateBefore
+import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,28 +59,57 @@ fun DateSelector(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Título del mes y año con botones de navegación
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = {
-                        displayedYearMonth = displayedYearMonth.minusMonths(1)
-                    }) {
-                        Text("<")
+                    IconButton(
+                        onClick = {
+                            displayedYearMonth = displayedYearMonth.minusMonths(1)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.NavigateBefore,
+                            contentDescription = "Mes anterior",
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
-                    Text(displayedYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")))
-                    IconButton(onClick = {
-                        displayedYearMonth = displayedYearMonth.plusMonths(1)
-                    }) {
-                        Text(">")
+
+                    Text(
+                        displayedYearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    IconButton(
+                        onClick = {
+                            displayedYearMonth = displayedYearMonth.plusMonths(1)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.NavigateNext,
+                            contentDescription = "Mes siguiente",
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
                 CalendarGrid(
                     yearMonth = displayedYearMonth,
+                    selectedDate = selectedDate,
+                    today = today,
                     onDateSelected = { date ->
                         onDateSelected(date)
                         expanded = false
@@ -89,13 +124,10 @@ fun DateSelector(
 @Composable
 fun CalendarGrid(
     yearMonth: YearMonth,
+    selectedDate: LocalDate,
+    today: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    val firstDayOfMonth = yearMonth.atDay(1)
-    val daysInMonth = yearMonth.lengthOfMonth()
-    val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value
-    val today = LocalDate.now()
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -111,7 +143,8 @@ fun CalendarGrid(
                     text = day,
                     modifier = Modifier.width(40.dp),
                     textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -119,6 +152,10 @@ fun CalendarGrid(
         Spacer(modifier = Modifier.height(8.dp))
 
         // Días del mes
+        val firstDayOfMonth = yearMonth.atDay(1)
+        val daysInMonth = yearMonth.lengthOfMonth()
+        val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value
+
         (0 until 6).forEach { week ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -128,7 +165,9 @@ fun CalendarGrid(
                     val day = week * 7 + dayOfWeek - firstDayOfWeek + 1
                     if (day in 1..daysInMonth) {
                         val date = yearMonth.atDay(day)
+                        val isSelected = date == selectedDate
                         val isToday = date == today
+
                         Button(
                             onClick = { onDateSelected(date) },
                             modifier = Modifier
@@ -138,12 +177,20 @@ fun CalendarGrid(
                                 containerColor = if (isToday) Color.Red else MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
+                            elevation = if (isSelected) ButtonDefaults.buttonElevation(
+                                defaultElevation = 8.dp
+                            ) else ButtonDefaults.buttonElevation(),
+                            border = if (isSelected) BorderStroke(
+                                2.dp,
+                                Color.Blue
+                            ) else null,
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text(
                                 text = day.toString(),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimary
+
                             )
                         }
                     } else {

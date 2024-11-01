@@ -33,25 +33,44 @@ fun RegistroAlimentoSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxHeight(0.85f),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        windowInsets = WindowInsets(0, 0, 0, 0)  // Esto es clave
     ) {
-        // Reutilizamos el contenido compartido
-        AlimentoContent(
-            searchQuery = searchQuery,
-            onSearchQueryChange = { query ->
-                searchViewModel.updateSearchQuery(query)
-            },
-            onAlimentoSelected = onAlimentoSelected,
-            onMiAlimentoSelected = onMiAlimentoSelected,
-            alimentoViewModel = alimentoViewModel,
-            misAlimentosViewModel = misAlimentosViewModel,
-            favoritosViewModel = favoritosViewModel,
-            scannerViewModel = scannerViewModel,
-            tipoComidaSeleccionado = tipoComidaSeleccionado,
-            modifier = modifier
+        Box(
+            modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-        )
+                .navigationBarsPadding()  // Padding para los botones de navegación
+                .imePadding()            // Padding para el teclado
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 56.dp)  // Padding extra para asegurar espacio
+            ) {
+                // Tu contenido actual del BottomSheet
+                AlimentoContent(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { query ->
+                        searchViewModel.updateSearchQuery(query)
+                    },
+                    onAlimentoSelected = { alimento, cantidad, tipoComida ->
+                        onAlimentoSelected(alimento, cantidad, tipoComida)
+                        onDismiss()
+                    },
+                    onMiAlimentoSelected = { miAlimento, cantidad, tipoComida ->
+                        onMiAlimentoSelected(miAlimento, cantidad, tipoComida)
+                        onDismiss()
+                    },
+                    alimentoViewModel = alimentoViewModel,
+                    misAlimentosViewModel = misAlimentosViewModel,
+                    favoritosViewModel = favoritosViewModel,
+                    scannerViewModel = scannerViewModel,
+                    tipoComidaSeleccionado = tipoComidaSeleccionado,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
     }
 
     // Efecto para limpiar el estado al cerrar

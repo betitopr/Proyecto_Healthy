@@ -130,13 +130,14 @@ fun DetalleAlimentoBottomSheet(
     var cantidad by remember { mutableStateOf("1") }
     var tipoComidaSeleccionado by remember { mutableStateOf(tipoComidaInicial) }
     var showTipoComidaMenu by remember { mutableStateOf(false) }
-
+    val windowInsets = WindowInsets.navigationBars
     val tiposComida = listOf("Desayuno", "Almuerzo", "Cena", "Snacks")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxHeight(0.78f),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        windowInsets = windowInsets
     ) {
         Column(
             modifier = Modifier

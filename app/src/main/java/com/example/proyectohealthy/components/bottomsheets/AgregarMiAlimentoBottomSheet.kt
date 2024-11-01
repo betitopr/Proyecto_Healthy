@@ -31,11 +31,14 @@ fun AgregarMiAlimentoBottomSheet(
     var grasas by remember { mutableStateOf("") }
     var carbohidratos by remember { mutableStateOf("") }
     var expandedCategoria by remember { mutableStateOf(false) }
+    val windowInsets = WindowInsets.navigationBars
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = Modifier.fillMaxHeight(0.9f),
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        windowInsets=windowInsets
+
     ) {
         Column(
             modifier = Modifier
