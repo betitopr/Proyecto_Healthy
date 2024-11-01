@@ -1,4 +1,4 @@
-package com.example.proyectohealthy.screen.questionnaire
+/*package com.example.proyectohealthy.screen.questionnaire
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -61,4 +61,4 @@ fun CalcularDatosSaludScreen(
             }
         }
     }
-}
+}*/

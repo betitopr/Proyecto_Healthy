@@ -9,7 +9,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.proyectohealthy.screen.questionnaire.CalcularDatosSaludScreen
 import com.example.proyectohealthy.screen.questionnaire.ComoConseguirloScreen
 import com.example.proyectohealthy.screen.questionnaire.EntrenamientoFuerzaScreen
 import com.example.proyectohealthy.screen.questionnaire.InformacionPersonalScreen
@@ -84,17 +83,17 @@ fun QuestionnaireHost(
         composable("summary") {
             SummaryScreen(
                 perfilViewModel = perfilViewModel,
-                onNextClick = { navController.navigate("calcular_datos_salud") },
+                onNextClick = { navController.navigate("progreso") },
                 onPreviousClick = { navController.popBackStack() }
             )
         }
-        composable("calcular_datos_salud") {
+        /*composable("calcular_datos_salud") {
             CalcularDatosSaludScreen(
                 perfilViewModel = perfilViewModel,
                 onNextClick = { navController.navigate("progreso") },
                 onPreviousClick = { navController.popBackStack() }
             )
-        }
+        }*/
         composable("progreso") {
             ProgresoScreen(
                 perfilViewModel = perfilViewModel,
