@@ -2,26 +2,21 @@ package com.example.proyectohealthy.util
 
 object Constants {
     val CATEGORIAS_ALIMENTOS = listOf(
-        "Sin categoria asignada",
+        "Sin categoría asignada",
         "Carnes",
-        "Pescados y mariscos",
         "Frutas",
-        "Verduras y hortalizas",
-        "Lácteos y derivados",
-        "Cereales y derivados",
-        "Legumbres",
-        "Frutos secos",
-        "Huevos",
-        "Galletas y snacks",
+        "Verduras",
+        "Lácteos",
+        "Cereales y Legumbres",
+        "Snacks y galletas",
         "Conservas",
         "Suplementos energéticos",
-        "Bebidas no alcohólicas",
-        "Bebidas alcohólicas",
+        "Bebidas",
         "Aceites y grasas",
         "Salsas y condimentos",
         "Dulces y postres",
-        "Productos veganos",
-        "Comida rápida",
+        "Segundos",
+        "Sopas y caldos",
         "Otros"
     )
 }

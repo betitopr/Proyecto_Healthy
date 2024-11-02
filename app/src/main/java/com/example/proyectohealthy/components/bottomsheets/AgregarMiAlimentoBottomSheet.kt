@@ -1,9 +1,15 @@
 package com.example.proyectohealthy.components.bottomsheets
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +23,7 @@ import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 import com.example.proyectohealthy.util.Constants
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AgregarMiAlimentoBottomSheet(
     onDismiss: () -> Unit,
@@ -28,43 +34,67 @@ fun AgregarMiAlimentoBottomSheet(
     var nombre by remember { mutableStateOf("") }
     var marca by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf("") }
-    var busquedaCategoria by remember { mutableStateOf("") }
     var nombrePorcion by remember { mutableStateOf("") }
-    var pesoPorcion by remember { mutableStateOf("") }
-    var unidadPorcion by remember { mutableStateOf("") }
+    var pesoPorcionOriginal by remember { mutableStateOf(0f) }
+    var pesoPorcionMostrado by remember { mutableStateOf("") }
+    var unidadPorcion by remember { mutableStateOf("g") }
     var calorias by remember { mutableStateOf("") }
     var proteinas by remember { mutableStateOf("") }
     var grasas by remember { mutableStateOf("") }
     var carbohidratos by remember { mutableStateOf("") }
-    var expandedCategoria by remember { mutableStateOf(false) }
     var expandedUnidades by remember { mutableStateOf(false) }
 
     val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
     val sistemaPeso = currentPerfil?.unidadesPreferences?.sistemaPeso ?: "Métrico (kg)"
+    var showCategoriasSheet by remember { mutableStateOf(false) }
 
-    // Unidades de peso disponibles
-    val unidadesPeso = listOf("g", "kg", "oz", "fl oz", "ml", "L")
-
-    // Establecer unidad predeterminada según preferencias
     LaunchedEffect(sistemaPeso) {
+        // Establecer unidad por defecto según el sistema
         unidadPorcion = if (sistemaPeso.contains("Imperial")) "oz" else "g"
+
+        // Si hay un valor existente, convertirlo a la unidad correspondiente
+        if (pesoPorcionOriginal > 0) {
+            val valorMostrado = convertirDesdeGramos(pesoPorcionOriginal, unidadPorcion)
+            pesoPorcionMostrado = String.format("%.2f", valorMostrado)
+        }
     }
 
-    // Función para convertir a gramos
+    // Unidades de peso disponibles según el sistema
+    val unidadesPeso = if (sistemaPeso.contains("Imperial")) {
+        listOf("oz", "fl oz", "lb")
+    } else {
+        listOf("g", "kg", "ml", "L")
+    }
+
+    // Funciones de conversión
     fun convertirAGramos(valor: Float, unidad: String): Float {
         return when (unidad) {
             "kg" -> valor * 1000
             "oz" -> valor * 28.3495f
             "fl oz" -> valor * 29.5735f
+            "lb" -> valor * 453.592f
             "ml" -> valor
             "L" -> valor * 1000
             else -> valor // gramos
         }
     }
 
-    // Filtrar categorías según búsqueda
-    val categoriasFiltradas = Constants.CATEGORIAS_ALIMENTOS.filter {
-        it.lowercase().contains(busquedaCategoria.lowercase())
+    fun convertirDesdeGramos(valorEnGramos: Float, unidadDestino: String): Float {
+        return when (unidadDestino) {
+            "kg" -> valorEnGramos / 1000
+            "oz" -> valorEnGramos / 28.3495f
+            "fl oz" -> valorEnGramos / 29.5735f
+            "lb" -> valorEnGramos / 453.592f
+            "ml" -> valorEnGramos
+            "L" -> valorEnGramos / 1000
+            else -> valorEnGramos
+        }
+    }
+
+    // Efecto para actualizar el valor mostrado cuando cambia la unidad
+    LaunchedEffect(unidadPorcion) {
+        val nuevoValorMostrado = convertirDesdeGramos(pesoPorcionOriginal, unidadPorcion)
+        pesoPorcionMostrado = String.format("%.2f", nuevoValorMostrado)
     }
 
     ModalBottomSheet(
@@ -109,45 +139,35 @@ fun AgregarMiAlimentoBottomSheet(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    "Categoría",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Categoría con búsqueda
-                ExposedDropdownMenuBox(
-                    expanded = expandedCategoria,
-                    onExpandedChange = { expandedCategoria = it }
-                ) {
-                    OutlinedTextField(
-                        value = busquedaCategoria,
-                        onValueChange = {
-                            busquedaCategoria = it
-                            expandedCategoria = true
-                        },
-                        label = { Text("Categoría") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedCategoria,
-                        onDismissRequest = { expandedCategoria = false }
-                    ) {
-                        categoriasFiltradas.forEach { categoria ->
-                            DropdownMenuItem(
-                                text = { Text(categoria) },
-                                onClick = {
-                                    categoriaSeleccionada = categoria
-                                    busquedaCategoria = categoria
-                                    expandedCategoria = false
-                                }
+
+                OutlinedTextField(
+                    value = categoriaSeleccionada,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría") },
+                    placeholder = { Text("Selecciona una categoría") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { showCategoriasSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Seleccionar categoría"
                             )
                         }
                     }
-                }
+                )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Nombre de porción
                 OutlinedTextField(
                     value = nombrePorcion,
                     onValueChange = { nombrePorcion = it },
@@ -157,15 +177,19 @@ fun AgregarMiAlimentoBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Peso de porción con selector de unidades
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically  // Centra verticalmente los componentes
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = pesoPorcion,
-                        onValueChange = { pesoPorcion = it },
+                        value = pesoPorcionMostrado,
+                        onValueChange = { nuevoValor ->
+                            pesoPorcionMostrado = nuevoValor
+                            nuevoValor.toFloatOrNull()?.let { valor ->
+                                pesoPorcionOriginal = convertirAGramos(valor, unidadPorcion)
+                            }
+                        },
                         label = { Text("Peso de Porción") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -179,7 +203,7 @@ fun AgregarMiAlimentoBottomSheet(
                             value = unidadPorcion,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Unidad") },  // Añade una etiqueta para alinear visualmente
+                            label = { Text("Unidad") },
                             modifier = Modifier
                                 .menuAnchor()
                                 .width(100.dp),
@@ -194,7 +218,6 @@ fun AgregarMiAlimentoBottomSheet(
                         ) {
                             unidadesPeso.forEach { unidad ->
                                 DropdownMenuItem(
-                                    modifier = Modifier.padding(vertical = 2.dp),
                                     text = { Text(unidad) },
                                     onClick = {
                                         unidadPorcion = unidad
@@ -208,7 +231,6 @@ fun AgregarMiAlimentoBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Campos nutricionales
                 OutlinedTextField(
                     value = calorias,
                     onValueChange = { calorias = it },
@@ -249,7 +271,6 @@ fun AgregarMiAlimentoBottomSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botones
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -259,16 +280,13 @@ fun AgregarMiAlimentoBottomSheet(
                     }
                     Button(
                         onClick = {
-                            val pesoEnGramos = pesoPorcion.toFloatOrNull()?.let { peso ->
-                                convertirAGramos(peso, unidadPorcion)
-                            } ?: 0f
-
                             val nuevoAlimento = MisAlimentos(
                                 nombre = nombre.lowercase(),
                                 marca = marca,
                                 categoria = categoriaSeleccionada,
                                 nombrePorcion = nombrePorcion,
-                                pesoPorcion = pesoEnGramos,
+                                pesoPorcion = pesoPorcionOriginal, // Siempre guardamos en gramos
+                                unidadPorcion = unidadPorcion,
                                 calorias = calorias.toIntOrNull() ?: 0,
                                 proteinas = proteinas.toFloatOrNull() ?: 0f,
                                 grasas = grasas.toFloatOrNull() ?: 0f,
@@ -280,10 +298,120 @@ fun AgregarMiAlimentoBottomSheet(
                         Text("Guardar")
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
+                if (showCategoriasSheet) {
+                    SelectorCategoriasBottomSheet(
+                        categoriaSeleccionada = categoriaSeleccionada,
+                        onCategoriaSelected = { categoria ->
+                            categoriaSeleccionada = categoria
+                        },
+                        onDismiss = { showCategoriasSheet = false }
+                    )
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectorCategoriasBottomSheet(
+    categoriaSeleccionada: String,
+    onCategoriaSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.fillMaxHeight(0.8f),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        windowInsets = WindowInsets(0, 0, 0, 0)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Cabecera fija con título y botón cerrar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Seleccionar Categoría",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancelar")
+                    }
+                }
+
+                HorizontalDivider()
+
+                // Lista scrolleable de categorías
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(Constants.CATEGORIAS_ALIMENTOS) { categoria ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 1.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (categoria == categoriaSeleccionada)
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.surface
+                            ),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onCategoriaSelected(categoria)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 16.dp,
+                                        vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = categoria == categoriaSeleccionada,
+                                    onClick = {
+                                        onCategoriaSelected(categoria)
+                                        onDismiss()
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = categoria,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (categoria == categoriaSeleccionada)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    // Espacio adicional al final para evitar que el último ítem quede oculto
+                    item {
+                        Spacer(modifier = Modifier.height(56.dp))
+                    }
+                }
+            }
+        }
+    }
+}

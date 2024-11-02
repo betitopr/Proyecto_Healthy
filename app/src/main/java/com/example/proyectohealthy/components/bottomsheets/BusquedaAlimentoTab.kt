@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -123,90 +125,106 @@ fun AlimentoItem(
 @Composable
 fun DetalleAlimentoBottomSheet(
     alimento: Alimento,
-    tipoComidaInicial: String, // Nuevo parámetro
+    tipoComidaInicial: String,
     onDismiss: () -> Unit,
-    onConfirm: (Float, String) -> Unit // Modificado para incluir el tipo de comida
+    onConfirm: (Float, String) -> Unit
 ) {
     var cantidad by remember { mutableStateOf("1") }
     var tipoComidaSeleccionado by remember { mutableStateOf(tipoComidaInicial) }
     var showTipoComidaMenu by remember { mutableStateOf(false) }
-    val windowInsets = WindowInsets.navigationBars
     val tiposComida = listOf("Desayuno", "Almuerzo", "Cena", "Snacks")
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxHeight(0.78f),
+        modifier = Modifier.fillMaxHeight(0.8f),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        windowInsets = windowInsets
+        windowInsets = WindowInsets(0, 0, 0, 0)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-                .imePadding()
                 .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .imePadding()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 50.dp)
         ) {
-            Text(alimento.nombre, style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Calorías: ${alimento.calorias}")
-            Text("Proteínas: ${alimento.proteinas}g")
-            Text("Carbohidratos: ${alimento.carbohidratos}g")
-            Text("Grasas: ${alimento.grasas}g")
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = cantidad,
-                onValueChange = { cantidad = it },
-                label = { Text("Cantidad (${alimento.nombrePorcion})") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
+            // Encabezado fijo
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(bottom = 8.dp)
             ) {
-                TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
-                }
+                Text(
+                    text = alimento.nombre,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
 
-                // Botón para agregar el alimento
-                Button(
-                    onClick = {
-                        cantidad.toFloatOrNull()?.let {
-                            onConfirm(it, tipoComidaSeleccionado)
-                        }
-                    }
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
                 ) {
-                    Text("Agregar")
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Botón para seleccionar el tipo de comida (con menú desplegable)
-                Box {
-                    Button(
-                        onClick = { showTipoComidaMenu = true }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(tipoComidaSeleccionado)
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Cambiar tipo de comida"
-                            )
-                        }
+                        InfoColumn("Calorías", "${alimento.calorias}")
+                        InfoColumn("Proteínas", "${alimento.proteinas}g")
+                        InfoColumn("Carbos", "${alimento.carbohidratos}g")
+                        InfoColumn("Grasas", "${alimento.grasas}g")
                     }
+                }
+            }
 
-                    // Menú desplegable para cambiar el tipo de comida
-                    DropdownMenu(
+            HorizontalDivider()
+
+            // Contenido scrolleable
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Selector de cantidad
+                OutlinedTextField(
+                    value = cantidad,
+                    onValueChange = { cantidad = it },
+                    label = { Text("Cantidad (${alimento.nombrePorcion})") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+
+                // Selector de tipo de comida
+                ExposedDropdownMenuBox(
+                    expanded = showTipoComidaMenu,
+                    onExpandedChange = { showTipoComidaMenu = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = tipoComidaSeleccionado,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tipo de Comida") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTipoComidaMenu)
+                        },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
                         expanded = showTipoComidaMenu,
                         onDismissRequest = { showTipoComidaMenu = false }
                     ) {
@@ -221,7 +239,104 @@ fun DetalleAlimentoBottomSheet(
                         }
                     }
                 }
+
+                // Resumen nutricional por porción seleccionada
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            "Total con la cantidad seleccionada:",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        val cantidadNum = cantidad.toFloatOrNull() ?: 0f
+                        InfoRow("Calorías", "${(alimento.calorias * cantidadNum).toInt()} kcal")
+                        InfoRow("Proteínas", "${String.format("%.1f", alimento.proteinas * cantidadNum)}g")
+                        InfoRow("Carbohidratos", "${String.format("%.1f", alimento.carbohidratos * cantidadNum)}g")
+                        InfoRow("Grasas", "${String.format("%.1f", alimento.grasas * cantidadNum)}g")
+                    }
+                }
+            }
+
+            // Botones de acción siempre visibles al final
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Cancelar")
+                }
+                Button(
+                    onClick = {
+                        cantidad.toFloatOrNull()?.let { cantidadNum ->
+                            onConfirm(cantidadNum, tipoComidaSeleccionado)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = cantidad.toFloatOrNull() != null
+                ) {
+                    Text("Agregar")
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun InfoColumn(
+    label: String,
+    value: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+private fun InfoRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }

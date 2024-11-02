@@ -11,6 +11,7 @@ data class MisAlimentos(
     val categoria: String = Constants.CATEGORIAS_ALIMENTOS[0],
     val nombrePorcion: String = "",
     val pesoPorcion: Float = 0f,
+    val unidadPorcion: String = "g",
     val calorias: Int = 0,
     val grasas: Float = 0f,
     val grasasSaturadas: Float = 0f,

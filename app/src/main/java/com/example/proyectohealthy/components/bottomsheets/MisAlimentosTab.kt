@@ -7,12 +7,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -33,6 +35,8 @@ import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.ui.viewmodel.AlimentoViewModel
 import com.example.proyectohealthy.ui.viewmodel.FavoritosViewModel
 import com.example.proyectohealthy.ui.viewmodel.MisAlimentosViewModel
+import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
+import com.example.proyectohealthy.util.Constants
 
 @Composable
 fun MisAlimentosTab(
@@ -104,13 +108,14 @@ fun MisAlimentosTab(
 
     // Diálogo de edición
     showEditDialog?.let { miAlimento ->
-        EditarMiAlimentoDialog(
+        EditarMiAlimentoBottomSheet(
             miAlimento = miAlimento,
             onDismiss = { showEditDialog = null },
             onConfirm = { alimentoEditado ->
                 viewModel.updateMiAlimento(alimentoEditado)
                 showEditDialog = null
-            }
+            },
+            viewModel = viewModel
         )
     }
 
@@ -227,75 +232,332 @@ fun LoadingIndicator() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditarMiAlimentoDialog(
+fun EditarMiAlimentoBottomSheet(
     miAlimento: MisAlimentos,
     onDismiss: () -> Unit,
-    onConfirm: (MisAlimentos) -> Unit
+    onConfirm: (MisAlimentos) -> Unit,
+    viewModel: MisAlimentosViewModel,
+    perfilViewModel: PerfilViewModel = hiltViewModel()
 ) {
     var nombre by remember { mutableStateOf(miAlimento.nombre) }
     var marca by remember { mutableStateOf(miAlimento.marca) }
+    var categoriaSeleccionada by remember { mutableStateOf(miAlimento.categoria) }
+    var nombrePorcion by remember { mutableStateOf(miAlimento.nombrePorcion) }
+    var pesoPorcionOriginal by remember { mutableStateOf(miAlimento.pesoPorcion) }
+    var pesoPorcionMostrado by remember { mutableStateOf("") }
+    var unidadPorcion by remember { mutableStateOf(miAlimento.unidadPorcion) }
     var calorias by remember { mutableStateOf(miAlimento.calorias.toString()) }
     var proteinas by remember { mutableStateOf(miAlimento.proteinas.toString()) }
-    var carbohidratos by remember { mutableStateOf(miAlimento.carbohidratos.toString()) }
     var grasas by remember { mutableStateOf(miAlimento.grasas.toString()) }
+    var carbohidratos by remember { mutableStateOf(miAlimento.carbohidratos.toString()) }
+    var expandedUnidades by remember { mutableStateOf(false) }
+    var showCategoriasSheet by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    val currentPerfil by perfilViewModel.currentPerfil.collectAsState()
+    val sistemaPeso = currentPerfil?.unidadesPreferences?.sistemaPeso ?: "Métrico (kg)"
+
+    // Unidades de peso disponibles según el sistema
+    val unidadesPeso = if (sistemaPeso.contains("Imperial")) {
+        listOf("oz", "fl oz", "lb")
+    } else {
+        listOf("g", "kg", "ml", "L")
+    }
+
+    // Funciones de conversión
+    fun convertirAGramos(valor: Float, unidad: String): Float {
+        return when (unidad) {
+            "kg" -> valor * 1000
+            "oz" -> valor * 28.3495f
+            "fl oz" -> valor * 29.5735f
+            "lb" -> valor * 453.592f
+            "ml" -> valor
+            "L" -> valor * 1000
+            else -> valor // gramos
+        }
+    }
+
+    fun convertirDesdeGramos(valorEnGramos: Float, unidadDestino: String): Float {
+        return when (unidadDestino) {
+            "kg" -> valorEnGramos / 1000
+            "oz" -> valorEnGramos / 28.3495f
+            "fl oz" -> valorEnGramos / 29.5735f
+            "lb" -> valorEnGramos / 453.592f
+            "ml" -> valorEnGramos
+            "L" -> valorEnGramos / 1000
+            else -> valorEnGramos
+        }
+    }
+
+    // Inicializar valores según el sistema
+    LaunchedEffect(sistemaPeso) {
+        unidadPorcion = if (sistemaPeso.contains("Imperial")) "oz" else "g"
+        val valorMostrado = convertirDesdeGramos(pesoPorcionOriginal, unidadPorcion)
+        pesoPorcionMostrado = String.format("%.2f", valorMostrado)
+    }
+
+    // Inicializar el valor según la unidad original
+    LaunchedEffect(Unit) {
+        if (sistemaPeso.contains("Imperial")) {
+            // Si está en sistema imperial, verificar si la unidad guardada es imperial
+            unidadPorcion = when (miAlimento.unidadPorcion) {
+                "oz", "fl oz", "lb" -> miAlimento.unidadPorcion
+                else -> "oz" // Por defecto si viene en métrico
+            }
+        } else {
+            // Si está en sistema métrico, verificar si la unidad guardada es métrica
+            unidadPorcion = when (miAlimento.unidadPorcion) {
+                "g", "kg", "ml", "L" -> miAlimento.unidadPorcion
+                else -> "g" // Por defecto si viene en imperial
+            }
+        }
+
+        // Convertir el valor según la unidad original
+        val valorMostrado = convertirDesdeGramos(miAlimento.pesoPorcion, unidadPorcion)
+        pesoPorcionMostrado = String.format("%.2f", valorMostrado)
+    }
+
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("Editar alimento") },
-        text = {
+        modifier = Modifier.fillMaxHeight(0.9f),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        windowInsets = WindowInsets(0, 0, 0, 0)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 56.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                Text(
+                    "Editar Alimento",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
                     value = nombre,
                     onValueChange = { nombre = it },
                     label = { Text("Nombre") },
                     modifier = Modifier.fillMaxWidth()
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = marca,
                     onValueChange = { marca = it },
                     label = { Text("Marca") },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = categoriaSeleccionada,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Categoría") },
+                    placeholder = { Text("Selecciona una categoría") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { showCategoriasSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Seleccionar categoría"
+                            )
+                        }
+                    }
+                )
+
+                if (showCategoriasSheet) {
+                    SelectorCategoriasBottomSheet(
+                        categoriaSeleccionada = categoriaSeleccionada,
+                        onCategoriaSelected = { categoria ->
+                            categoriaSeleccionada = categoria
+                        },
+                        onDismiss = { showCategoriasSheet = false }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = nombrePorcion,
+                    onValueChange = { nombrePorcion = it },
+                    label = { Text("Nombre de Porción") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = pesoPorcionMostrado,
+                        onValueChange = { nuevoValor ->
+                            pesoPorcionMostrado = nuevoValor
+                            nuevoValor.toFloatOrNull()?.let { valor ->
+                                pesoPorcionOriginal = convertirAGramos(valor, unidadPorcion)
+                            }
+                        },
+                        label = { Text("Peso de Porción") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+
+                    ExposedDropdownMenuBox(
+                        expanded = expandedUnidades,
+                        onExpandedChange = { expandedUnidades = it }
+                    ) {
+                        OutlinedTextField(
+                            value = unidadPorcion,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Unidad") },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .width(100.dp),
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUnidades)
+                            }
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expandedUnidades,
+                            onDismissRequest = { expandedUnidades = false }
+                        ) {
+                            unidadesPeso.forEach { unidad ->
+                                DropdownMenuItem(
+                                    text = { Text(unidad) },
+                                    onClick = {
+                                        unidadPorcion = unidad
+                                        expandedUnidades = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 OutlinedTextField(
                     value = calorias,
                     onValueChange = { calorias = it },
                     label = { Text("Calorías") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-                // Agrega más campos según necesites
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val alimentoEditado = miAlimento.copy(
-                        nombre = nombre,
-                        marca = marca,
-                        calorias = calorias.toIntOrNull() ?: 0,
-                        proteinas = proteinas.toFloatOrNull() ?: 0f,
-                        carbohidratos = carbohidratos.toFloatOrNull() ?: 0f,
-                        grasas = grasas.toFloatOrNull() ?: 0f
-                    )
-                    onConfirm(alimentoEditado)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = proteinas,
+                    onValueChange = { proteinas = it },
+                    label = { Text("Proteínas (g)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = grasas,
+                    onValueChange = { grasas = it },
+                    label = { Text("Grasas (g)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = carbohidratos,
+                    onValueChange = { carbohidratos = it },
+                    label = { Text("Carbohidratos (g)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancelar")
+                    }
+                    Button(
+                        onClick = {
+                            val alimentoActualizado = miAlimento.copy(
+                                nombre = nombre.lowercase(),
+                                marca = marca,
+                                categoria = categoriaSeleccionada,
+                                nombrePorcion = nombrePorcion,
+                                pesoPorcion = pesoPorcionOriginal,
+                                unidadPorcion = unidadPorcion,
+                                calorias = calorias.toIntOrNull() ?: 0,
+                                proteinas = proteinas.toFloatOrNull() ?: 0f,
+                                grasas = grasas.toFloatOrNull() ?: 0f,
+                                carbohidratos = carbohidratos.toFloatOrNull() ?: 0f
+                            )
+                            onConfirm(alimentoActualizado)
+                        }
+                    ) {
+                        Text("Guardar")
+                    }
                 }
-            ) {
-                Text("Guardar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                if (showCategoriasSheet) {
+                    SelectorCategoriasBottomSheet(
+                        categoriaSeleccionada = categoriaSeleccionada,
+                        onCategoriaSelected = { categoria ->
+                            categoriaSeleccionada = categoria
+                        },
+                        onDismiss = { showCategoriasSheet = false }
+                    )
+                }
             }
         }
-    )
+    }
+}
+
+// Funciones de conversión mejoradas
+fun convertirAGramos(valor: Float, unidad: String): Float {
+    return when (unidad) {
+        "kg" -> valor * 1000
+        "oz" -> valor * 28.3495f
+        "fl oz" -> valor * 29.5735f
+        "lb" -> valor * 453.592f
+        "ml" -> valor
+        "L" -> valor * 1000
+        else -> valor // gramos
+    }
+}
+
+fun convertirDesdeGramos(valorEnGramos: Float, unidadDestino: String): Float {
+    return when (unidadDestino) {
+        "kg" -> valorEnGramos / 1000
+        "oz" -> valorEnGramos / 28.3495f
+        "fl oz" -> valorEnGramos / 29.5735f
+        "lb" -> valorEnGramos / 453.592f
+        "ml" -> valorEnGramos
+        "L" -> valorEnGramos / 1000
+        else -> valorEnGramos
+    }
 }
 
 @Composable
