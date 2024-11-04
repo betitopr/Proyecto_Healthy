@@ -41,7 +41,28 @@ class MisAlimentosViewModel @Inject constructor(
     private var alimentosSinFiltrar = listOf<MisAlimentos>()
 
     init {
-        loadMisAlimentos()
+        // Observar cambios en la autenticación
+        auth.addAuthStateListener { firebaseAuth ->
+            if (firebaseAuth.currentUser == null) {
+                // Limpiar todos los estados cuando el usuario cierra sesión
+                clearAllStates()
+            } else {
+                // Cargar datos del nuevo usuario
+                loadMisAlimentos()
+            }
+        }
+    }
+
+    private fun clearAllStates() {
+        viewModelScope.launch {
+            _misAlimentos.value = emptyList()
+            _currentMiAlimento.value = null
+            _error.value = null
+            _currentQuery.value = ""
+            _filtros.value = AlimentoFiltros()
+            _categoriasDisponibles.value = emptyList()
+            alimentosSinFiltrar = emptyList()
+        }
     }
 
     private fun loadMisAlimentos() {
@@ -53,6 +74,7 @@ class MisAlimentosViewModel @Inject constructor(
                     aplicarFiltros()
                 }
             } ?: run {
+                clearAllStates()
                 _error.value = "Usuario no autenticado"
             }
         }
