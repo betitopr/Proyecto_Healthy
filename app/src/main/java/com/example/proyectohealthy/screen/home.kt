@@ -40,6 +40,7 @@ import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel
 import java.time.LocalDate
 import java.util.Date
 import com.example.proyectohealthy.components.bottomsheets.EjercicioBottomSheet
+import com.example.proyectohealthy.data.repository.CaloriasQuemadasRepository
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,25 +61,29 @@ fun HomeScreen(
     val progresoNutricional by registroComidaViewModel.progresoNutricional.collectAsState()
 
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
-    var showAlimentoBottomSheet by remember { mutableStateOf(false) }
-    var showEjercicioBottomSheet by remember { mutableStateOf(false) }
-    var showIngresoAlimento by remember { mutableStateOf(false) }
+
     val fechaSeleccionada by registroComidaViewModel.fechaSeleccionada.collectAsState()
     val registrosComidaDiarios by registroComidaViewModel.registrosComidaDiarios.collectAsState()
     val registrosEjercicio by ejercicioViewModel.registrosEjercicio.collectAsState()
     val ejercicios by ejercicioViewModel.ejercicios.collectAsState()
     val favoritosViewModel: FavoritosViewModel = hiltViewModel()
+    val caloriasQuemadas by ejercicioViewModel.caloriasQuemadas.collectAsState()
 
 
     var showIngresoEjercicio by remember { mutableStateOf(false) }
+    var showAlimentoBottomSheet by remember { mutableStateOf(false) }
+    var showEjercicioBottomSheet by remember { mutableStateOf(false) }
+    var showIngresoAlimento by remember { mutableStateOf(false) }
 
+    // Efecto para sincronizar datos cuando cambia la fecha
     LaunchedEffect(fechaSeleccionada) {
         registroComidaViewModel.cargarRegistrosComidaPorFecha(fechaSeleccionada)
         consumoAguaViewModel.setFechaSeleccionada(fechaSeleccionada)
-        ejercicioViewModel.setFechaSeleccionada(fechaSeleccionada)
+        ejercicioViewModel.cargarRegistrosEjercicioPorFecha(fechaSeleccionada)
+    }
 
-        // Actualizar calorías quemadas en RegistroComidaViewModel
-        val caloriasQuemadas = ejercicioViewModel.calcularCaloriasQuemadas()
+    // Efecto para actualizar RegistroComidaViewModel cuando cambian las calorías quemadas
+    LaunchedEffect(caloriasQuemadas) {
         registroComidaViewModel.actualizarCaloriasQuemadas(caloriasQuemadas)
     }
 
@@ -235,6 +240,7 @@ fun HomeScreen(
 }
 
 @Composable
+@RequiresApi(Build.VERSION_CODES.O)
 fun EjercicioSection(
     registros: List<RegistroEjercicio>,
     ejercicios: List<Ejercicio>,
@@ -242,9 +248,21 @@ fun EjercicioSection(
     onEliminarRegistro: (RegistroEjercicio) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = "Ejercicios", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
+        // Solo el título y botón
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Ejercicios",
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
 
+        // Lista de ejercicios registrados (sin mensaje cuando está vacía)
         registros.forEach { registro ->
             val ejercicio = ejercicios.find { it.id == registro.idEjercicio }
             if (ejercicio != null) {
@@ -253,13 +271,14 @@ fun EjercicioSection(
                     ejercicio = ejercicio,
                     onEliminar = { onEliminarRegistro(registro) }
                 )
+                Spacer(modifier = Modifier.height(4.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Botón de agregar
         Button(
             onClick = onAddClick,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Agregar Ejercicio")
         }
@@ -284,9 +303,18 @@ fun EjercicioItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = ejercicio.nombre, style = MaterialTheme.typography.titleMedium)
-                Text(text = "Duración: ${registroEjercicio.duracionMinutos} minutos")
-                Text(text = "Calorías quemadas: ${registroEjercicio.duracionMinutos * ejercicio.caloriasPorMinuto}")
+                Text(
+                    text = ejercicio.nombre,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "Duración: ${registroEjercicio.duracionMinutos} minutos",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Calorías quemadas: ${registroEjercicio.duracionMinutos * ejercicio.caloriasPorMinuto}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
             IconButton(onClick = onEliminar) {
                 Icon(Icons.Default.Close, contentDescription = "Eliminar")

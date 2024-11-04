@@ -20,6 +20,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.flow.StateFlow
+import javax.inject.Inject
 
 @Module
 @InstallIn(SingletonComponent::class)

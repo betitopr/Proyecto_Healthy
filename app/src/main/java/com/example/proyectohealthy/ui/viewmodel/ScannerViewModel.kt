@@ -95,37 +95,6 @@ class ScannerViewModel @Inject constructor(
         }
     }
 
-
-    fun saveMiAlimento(product: Product, idPerfil: String) {
-        viewModelScope.launch {
-            try {
-                val miAlimento = MisAlimentos(
-                    idPerfil = idPerfil,
-                    marca = product.brands ?: "Desconocida",
-                    nombre = product.product_name ?: "Desconocido",
-                    categoria = product.categories?.split(',')?.firstOrNull() ?: "Sin categoría",
-                    nombrePorcion = "100g",
-                    pesoPorcion = 100f,
-                    calorias = product.nutriments?.energy_100g?.toInt() ?: 0,
-                    grasas = product.nutriments?.fat_100g ?: 0f,
-                    grasasSaturadas = product.nutriments?.saturated_fat_100g ?: 0f,
-                    grasasTrans = 0f,
-                    sodio = (product.nutriments?.salt_100g ?: 0f) * 400f,
-                    carbohidratos = product.nutriments?.carbohydrates_100g ?: 0f,
-                    fibra = product.nutriments?.fiber_100g ?: 0f,
-                    azucares = product.nutriments?.sugars_100g ?: 0f,
-                    proteinas = product.nutriments?.proteins_100g ?: 0f,
-                    codigoQr = "",
-                    diaCreado = Date()
-                )
-                repository.saveMiAlimento(miAlimento)
-                _uiState.value = UiState.Saved(miAlimento)
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error("Error al guardar: ${e.message}")
-            }
-        }
-    }
-
     sealed class UiState {
         object Initial : UiState()
         object Loading : UiState()

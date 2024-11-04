@@ -8,9 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Alimento
 import com.example.proyectohealthy.data.local.entity.MisAlimentos
 import com.example.proyectohealthy.data.local.entity.RegistroComida
+import com.example.proyectohealthy.data.local.entity.RegistroDiario
 import com.example.proyectohealthy.data.repository.AlimentoRepository
+import com.example.proyectohealthy.data.repository.CaloriasQuemadasRepository
+import com.example.proyectohealthy.data.repository.EjercicioRepository
 import com.example.proyectohealthy.data.repository.MisAlimentosRepository
 import com.example.proyectohealthy.data.repository.RegistroComidaRepository
+import com.example.proyectohealthy.data.repository.RegistroDiarioRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,12 +25,16 @@ import java.time.ZoneId
 import java.util.*
 import javax.inject.Inject
 
+// RegistroComidaViewModel.kt
 @RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class RegistroComidaViewModel @Inject constructor(
     private val registroComidaRepository: RegistroComidaRepository,
+    private val registroDiarioRepository: RegistroDiarioRepository,
     private val alimentoRepository: AlimentoRepository,
     private val misAlimentosRepository: MisAlimentosRepository,
+
+    private val caloriasQuemadasRepository: CaloriasQuemadasRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
@@ -39,15 +47,17 @@ class RegistroComidaViewModel @Inject constructor(
     private val _progresoNutricional = MutableStateFlow(ProgresoNutricional())
     val progresoNutricional: StateFlow<ProgresoNutricional> = _progresoNutricional.asStateFlow()
 
-    private val _caloriasQuemadas = MutableStateFlow(0)
-    private val caloriasQuemadas: StateFlow<Int> = _caloriasQuemadas.asStateFlow()
-
-
-
     init {
         viewModelScope.launch {
             _fechaSeleccionada.collect { fecha ->
                 cargarRegistrosComidaPorFecha(fecha)
+                // Cargar calorías quemadas al cambiar la fecha
+                auth.currentUser?.uid?.let { userId ->
+                    caloriasQuemadasRepository.getCaloriasQuemadasPorFecha(userId, fecha)
+                        .collect { calorias ->
+                            actualizarCaloriasQuemadas(calorias)
+                        }
+                }
             }
         }
     }
@@ -61,51 +71,8 @@ class RegistroComidaViewModel @Inject constructor(
             val idPerfil = auth.currentUser?.uid ?: return@launch
             registroComidaRepository.getRegistrosComidaPorFecha(idPerfil, fecha).collect { registros ->
                 _registrosComidaDiarios.value = registros.groupBy { it.tipoComida }
-                calcularProgresoNutricional(registros)
+                actualizarRegistroDiario(fecha)
             }
-        }
-    }
-
-    fun actualizarCaloriasQuemadas(calorias: Int) {
-        _caloriasQuemadas.value = calorias
-    }
-
-    private fun calcularProgresoNutricional(registros: List<RegistroComida>) {
-        viewModelScope.launch {
-            var calorias = 0
-            var proteinas = 0f
-            var grasas = 0f
-            var carbohidratos = 0f
-
-            registros.forEach { registro ->
-                registro.alimentos.forEach { (alimentoId, cantidad) ->
-                    val alimento = alimentoRepository.getAlimentoById(alimentoId)
-                    alimento?.let {
-                        calorias += (it.calorias * cantidad).toInt()
-                        proteinas += it.proteinas * cantidad
-                        grasas += it.grasas * cantidad
-                        carbohidratos += it.carbohidratos * cantidad
-                    }
-                }
-                registro.misAlimentos.forEach { (alimentoId, cantidad) ->
-                    val miAlimento = misAlimentosRepository.getMiAlimentoById(auth.currentUser?.uid ?: "", alimentoId)
-                    miAlimento?.let {
-                        calorias += (it.calorias * cantidad).toInt()
-                        proteinas += it.proteinas * cantidad
-                        grasas += it.grasas * cantidad
-                        carbohidratos += it.carbohidratos * cantidad
-                    }
-                }
-            }
-
-            calorias -= caloriasQuemadas.value
-
-            _progresoNutricional.value = ProgresoNutricional(
-                calorias = calorias,
-                proteinas = proteinas.toInt(),
-                grasas = grasas.toInt(),
-                carbohidratos = carbohidratos.toInt()
-            )
         }
     }
 
@@ -151,17 +118,146 @@ class RegistroComidaViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 registroComidaRepository.deleteRegistroComida(registro.idPerfil, registro.id, registro.fecha)
-                cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
+                cargarRegistrosComidaPorFecha(registro.fecha)
             } catch (e: Exception) {
                 Log.e("RegistroComidaViewModel", "Error al eliminar registro: ${e.message}")
             }
         }
     }
+
+    private suspend fun actualizarRegistroDiario(fecha: LocalDate) {
+        try {
+            val userId = auth.currentUser?.uid ?: return
+            val registros = registroComidaRepository.getRegistrosComidaPorFecha(userId, fecha).first()
+            val caloriasQuemadas = caloriasQuemadasRepository.getCaloriasQuemadasPorFecha(userId, fecha).first()
+
+            // Calcular totales
+            var caloriasTotal = 0
+            var proteinasTotal = 0f
+            var carbohidratosTotal = 0f
+            var grasasTotal = 0f
+
+            registros.forEach { registro ->
+                registro.alimentos.forEach { (alimentoId, cantidad) ->
+                    alimentoRepository.getAlimentoById(alimentoId)?.let { alimento ->
+                        caloriasTotal += (alimento.calorias * cantidad).toInt()
+                        proteinasTotal += alimento.proteinas * cantidad
+                        carbohidratosTotal += alimento.carbohidratos * cantidad
+                        grasasTotal += alimento.grasas * cantidad
+                    }
+                }
+
+                registro.misAlimentos.forEach { (alimentoId, cantidad) ->
+                    misAlimentosRepository.getMiAlimentoById(userId, alimentoId)?.let { miAlimento ->
+                        caloriasTotal += (miAlimento.calorias * cantidad).toInt()
+                        proteinasTotal += miAlimento.proteinas * cantidad
+                        carbohidratosTotal += miAlimento.carbohidratos * cantidad
+                        grasasTotal += miAlimento.grasas * cantidad
+                    }
+                }
+            }
+
+            val caloriasNetas = caloriasTotal - caloriasQuemadas
+
+            val registroDiario = RegistroDiario(
+                idPerfil = userId,
+                fecha = fecha,
+                caloriasConsumidas = caloriasTotal,
+                proteinasConsumidas = proteinasTotal,
+                carbohidratosConsumidos = carbohidratosTotal,
+                grasasConsumidas = grasasTotal,
+                caloriasQuemadas = caloriasQuemadas,
+                caloriasNetas = caloriasNetas
+            )
+
+            registroDiarioRepository.guardarRegistroDiario(registroDiario)
+
+            _progresoNutricional.value = ProgresoNutricional(
+                calorias = caloriasTotal,
+                proteinas = proteinasTotal.toInt(),
+                carbohidratos = carbohidratosTotal.toInt(),
+                grasas = grasasTotal.toInt(),
+                caloriasQuemadas = caloriasQuemadas,
+                caloriasNetas = caloriasNetas
+            )
+        } catch (e: Exception) {
+            Log.e("RegistroComidaVM", "Error actualizando registro diario", e)
+        }
+    }
+
+    // Agregar método para actualizar calorías quemadas
+    fun actualizarCaloriasQuemadas(caloriasQuemadas: Int) {
+        viewModelScope.launch {
+            try {
+                val userId = auth.currentUser?.uid ?: return@launch
+                val registros = registroComidaRepository.getRegistrosComidaPorFecha(userId, _fechaSeleccionada.value).first()
+
+                // Calcular totales de alimentos
+                var caloriasTotal = 0
+                var proteinasTotal = 0f
+                var carbohidratosTotal = 0f
+                var grasasTotal = 0f
+
+                registros.forEach { registro ->
+                    registro.alimentos.forEach { (alimentoId, cantidad) ->
+                        alimentoRepository.getAlimentoById(alimentoId)?.let { alimento ->
+                            caloriasTotal += (alimento.calorias * cantidad).toInt()
+                            proteinasTotal += alimento.proteinas * cantidad
+                            carbohidratosTotal += alimento.carbohidratos * cantidad
+                            grasasTotal += alimento.grasas * cantidad
+                        }
+                    }
+
+                    registro.misAlimentos.forEach { (alimentoId, cantidad) ->
+                        misAlimentosRepository.getMiAlimentoById(userId, alimentoId)?.let { miAlimento ->
+                            caloriasTotal += (miAlimento.calorias * cantidad).toInt()
+                            proteinasTotal += miAlimento.proteinas * cantidad
+                            carbohidratosTotal += miAlimento.carbohidratos * cantidad
+                            grasasTotal += miAlimento.grasas * cantidad
+                        }
+                    }
+                }
+
+                val caloriasNetas = caloriasTotal - caloriasQuemadas
+
+                // Actualizar progreso nutricional
+                _progresoNutricional.value = ProgresoNutricional(
+                    calorias = caloriasTotal,
+                    proteinas = proteinasTotal.toInt(),
+                    carbohidratos = carbohidratosTotal.toInt(),
+                    grasas = grasasTotal.toInt(),
+                    caloriasQuemadas = caloriasQuemadas,
+                    caloriasNetas = caloriasNetas
+                )
+
+                // Actualizar registro diario
+                val registroDiario = RegistroDiario(
+                    idPerfil = userId,
+                    fecha = _fechaSeleccionada.value,
+                    caloriasConsumidas = caloriasTotal,
+                    proteinasConsumidas = proteinasTotal,
+                    carbohidratosConsumidos = carbohidratosTotal,
+                    grasasConsumidas = grasasTotal,
+                    caloriasQuemadas = caloriasQuemadas,
+                    caloriasNetas = caloriasNetas
+                )
+
+                registroDiarioRepository.guardarRegistroDiario(registroDiario)
+
+            } catch (e: Exception) {
+                Log.e("RegistroComidaVM", "Error actualizando calorías quemadas", e)
+            }
+        }
+    }
+
+
 }
 
 data class ProgresoNutricional(
     val calorias: Int = 0,
     val proteinas: Int = 0,
     val grasas: Int = 0,
-    val carbohidratos: Int = 0
+    val carbohidratos: Int = 0,
+    val caloriasQuemadas: Int = 0,
+    val caloriasNetas: Int = 0
 )

@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.proyectohealthy.data.local.entity.Ejercicio
@@ -52,7 +53,12 @@ fun EjercicioBottomSheet(
     val windowInsets = WindowInsets.navigationBars
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            // Limpiar estado al cerrar
+            selectedEjercicio = null
+            duracion = ""
+            onDismiss()
+        },
         modifier = Modifier.fillMaxHeight(0.9f),
         windowInsets = windowInsets
     ) {
@@ -64,6 +70,7 @@ fun EjercicioBottomSheet(
             Text("Seleccionar Ejercicio", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Lista de ejercicios con radio buttons
             LazyColumn {
                 items(ejercicios) { ejercicio ->
                     Row(
@@ -74,11 +81,18 @@ fun EjercicioBottomSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = selectedEjercicio == ejercicio,
+                            selected = selectedEjercicio?.id == ejercicio.id,
                             onClick = { selectedEjercicio = ejercicio }
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(ejercicio.nombre)
+                        Column {
+                            Text(ejercicio.nombre)
+                            Text(
+                                "${ejercicio.caloriasPorMinuto} cal/min",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -87,9 +101,12 @@ fun EjercicioBottomSheet(
 
             OutlinedTextField(
                 value = duracion,
-                onValueChange = { duracion = it },
+                onValueChange = { if (it.all { char -> char.isDigit() }) duracion = it },
                 label = { Text("Duración (minutos)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -100,6 +117,7 @@ fun EjercicioBottomSheet(
                     selectedEjercicio?.let { ejercicio ->
                         if (duracion.isNotEmpty()) {
                             onEjercicioSelected(ejercicio.id, duracion.toInt())
+                            onDismiss()
                         }
                     }
                 },

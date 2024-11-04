@@ -38,7 +38,7 @@ fun ProgresoNutricionalComponent(
     progresoNutricional: ProgresoNutricional,
     metasNutricionales: MetasNutricionales
 ) {
-    val datosCompletos = metasNutricionales.calorias > 0 // Verificar si hay datos reales
+    val datosCompletos = metasNutricionales.calorias > 0
 
     // Valores por defecto si no hay datos
     val metasMostradas = if (datosCompletos) {
@@ -52,15 +52,25 @@ fun ProgresoNutricionalComponent(
         )
     }
 
+    // Asegurarnos de usar las calorías netas correctamente
     val progresoMostrado = if (datosCompletos) {
-        progresoNutricional
+        progresoNutricional.copy(
+            caloriasNetas = progresoNutricional.calorias - progresoNutricional.caloriasQuemadas
+        )
     } else {
         ProgresoNutricional(
             calorias = 0,
             proteinas = 0,
             carbohidratos = 0,
-            grasas = 0
+            grasas = 0,
+            caloriasQuemadas = 0,
+            caloriasNetas = 0
         )
+    }
+
+    // Recordar el último valor válido de calorías netas
+    val ultimasCaloriasNetas = remember(progresoNutricional.calorias, progresoNutricional.caloriasQuemadas) {
+        progresoNutricional.calorias - progresoNutricional.caloriasQuemadas
     }
 
     Row(
@@ -83,7 +93,7 @@ fun ProgresoNutricionalComponent(
                 strokeWidth = 8.dp
             )
             CircularProgressIndicator(
-                progress = { (progresoMostrado.calorias.toFloat() / metasMostradas.calorias).coerceIn(0f, 1f) },
+                progress = { (ultimasCaloriasNetas.toFloat() / metasMostradas.calorias).coerceIn(0f, 1f) },
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.primary,
                 strokeWidth = 8.dp
@@ -92,7 +102,7 @@ fun ProgresoNutricionalComponent(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "${progresoMostrado.calorias}",
+                    text = "$ultimasCaloriasNetas",
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Text(
@@ -103,6 +113,15 @@ fun ProgresoNutricionalComponent(
                     text = "kcal",
                     style = MaterialTheme.typography.bodyMedium
                 )
+
+                // Mostrar desglose de calorías
+                if (progresoNutricional.caloriasQuemadas > 0) {
+                    Text(
+                        text = "(${progresoNutricional.calorias} - ${progresoNutricional.caloriasQuemadas})",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -133,7 +152,26 @@ fun ProgresoNutricionalComponent(
         }
     }
 
-    // Mensaje de advertencia si no hay datos
+    // Información adicional de calorías quemadas
+    if (progresoNutricional.caloriasQuemadas > 0) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Calorías consumidas: ${progresoNutricional.calorias}",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "Calorías quemadas: ${progresoNutricional.caloriasQuemadas}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+    }
+
     if (!datosCompletos) {
         Text(
             text = "Para una experiencia personalizada, complete el cuestionario de perfil",

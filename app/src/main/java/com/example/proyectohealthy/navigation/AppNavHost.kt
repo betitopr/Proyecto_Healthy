@@ -21,6 +21,7 @@ import com.example.proyectohealthy.screen.auth.LoginScreen
 import com.example.proyectohealthy.screen.auth.RegisterScreen
 import com.example.proyectohealthy.screen.ProfileScreen
 import com.example.proyectohealthy.screen.TeamsScreen//teams
+import com.example.proyectohealthy.screen.progreso.ProgresoScreen
 import com.example.proyectohealthy.screen.splash.SplashScreen
 import com.example.proyectohealthy.ui.viewmodel.*
 
@@ -145,6 +146,13 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         composable("teams") {
             val teamsViewModel: TeamsViewModel = hiltViewModel()
             TeamsScreen(navController = navController, viewModel = teamsViewModel)
+        }
+
+        composable("progreso") {
+            ProgresoScreen(
+                navController = navController,
+                perfilViewModel = perfilViewModel,
+            )
         }
     }
 }

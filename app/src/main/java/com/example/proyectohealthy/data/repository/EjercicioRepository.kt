@@ -15,17 +15,30 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class EjercicioRepository @Inject constructor(
     private val database: FirebaseDatabase
 ) {
     private val ejerciciosRef = database.getReference("ejercicios")
     private val registroEjerciciosRef = database.getReference("registro_ejercicios")
+    private val caloriasQuemadasRef = database.getReference("calorias_quemadas")
+
 
     fun getEjercicios(): Flow<List<Ejercicio>> = callbackFlow {
         val listener = ejerciciosRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val ejercicios = snapshot.children.mapNotNull { it.toEjercicio() }
+                val ejercicios = snapshot.children.mapNotNull {
+                    try {
+                        Ejercicio(
+                            id = it.key ?: "",
+                            nombre = it.child("nombre").getValue(String::class.java) ?: "",
+                            caloriasPorMinuto = it.child("caloriasPorMinuto").getValue(Int::class.java) ?: 0
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
                 trySend(ejercicios)
             }
             override fun onCancelled(error: DatabaseError) {
@@ -39,15 +52,56 @@ class EjercicioRepository @Inject constructor(
         return ejerciciosRef.child(id).get().await().toEjercicio()
     }
 
-    suspend fun createOrUpdateRegistroEjercicio(registro: RegistroEjercicio) {
-        val key = registro.id.ifEmpty { registroEjerciciosRef.push().key ?: return }
-        val registroMap = registro.toMap()
-        registroEjerciciosRef.child(registro.idPerfil).child(key).setValue(registroMap).await()
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun createOrUpdateRegistroEjercicio(registro: RegistroEjercicio, caloriasQuemadas: Int) {
+        val fechaStr = registro.fecha.format(DateTimeFormatter.BASIC_ISO_DATE)
+        val key = if (registro.id.isBlank()) {
+            registroEjerciciosRef.child(registro.idPerfil).child(fechaStr).push().key
+                ?: throw IllegalStateException("No se pudo generar key")
+        } else {
+            registro.id
+        }
+
+        val registroMap = mapOf(
+            "idEjercicio" to registro.idEjercicio,
+            "duracionMinutos" to registro.duracionMinutos
+        )
+
+        // Usar una transacción para actualizar tanto el registro como las calorías
+        database.reference.updateChildren(
+            mapOf(
+                "registro_ejercicios/${registro.idPerfil}/$fechaStr/$key" to registroMap,
+                "calorias_quemadas/${registro.idPerfil}/$fechaStr" to caloriasQuemadas
+            )
+        ).await()
     }
 
-    suspend fun createOrUpdateEjercicio(ejercicio: Ejercicio) {
-        val key = ejercicio.id.ifEmpty { ejerciciosRef.push().key ?: return }
-        val ejercicioMap = ejercicio.toMap()
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun deleteRegistroEjercicio(idPerfil: String, idRegistro: String, fecha: LocalDate, caloriasQuemadas: Int) {
+        val fechaStr = fecha.format(DateTimeFormatter.BASIC_ISO_DATE)
+
+        // Usar una transacción para eliminar el registro y actualizar las calorías
+        database.reference.updateChildren(
+            mapOf(
+                "registro_ejercicios/$idPerfil/$fechaStr/$idRegistro" to null,
+                "calorias_quemadas/$idPerfil/$fechaStr" to caloriasQuemadas
+            )
+        ).await()
+    }
+
+
+    suspend fun createOrUpdateEjercicios(ejercicio: Ejercicio) {
+        val key = if (ejercicio.id.isBlank()) {
+            ejerciciosRef.push().key ?: throw IllegalStateException("No se pudo generar key")
+        } else {
+            ejercicio.id
+        }
+
+        val ejercicioMap = mapOf(
+            "nombre" to ejercicio.nombre,
+            "caloriasPorMinuto" to ejercicio.caloriasPorMinuto
+        )
+
         ejerciciosRef.child(key).setValue(ejercicioMap).await()
     }
 
@@ -59,14 +113,26 @@ class EjercicioRepository @Inject constructor(
         )
     }
 
-    fun getRegistroEjerciciosPorFecha(idPerfil: String, fecha: LocalDate): Flow<List<RegistroEjercicio>> = callbackFlow {
-        val fechaString = fecha.toString()
-        val query = registroEjerciciosRef.child(idPerfil).orderByChild("fecha").equalTo(fechaString)
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getRegistrosEjercicioPorFecha(idPerfil: String, fecha: LocalDate): Flow<List<RegistroEjercicio>> = callbackFlow {
+        val fechaStr = fecha.format(DateTimeFormatter.BASIC_ISO_DATE)
+        val query = registroEjerciciosRef.child(idPerfil).child(fechaStr)
 
         val listener = query.addValueEventListener(object : ValueEventListener {
-            @RequiresApi(Build.VERSION_CODES.O)
             override fun onDataChange(snapshot: DataSnapshot) {
-                val registros = snapshot.children.mapNotNull { it.toRegistroEjercicio() }
+                val registros = snapshot.children.mapNotNull {
+                    try {
+                        RegistroEjercicio(
+                            id = it.key ?: "",
+                            idPerfil = idPerfil,
+                            idEjercicio = it.child("idEjercicio").getValue(String::class.java) ?: "",
+                            duracionMinutos = it.child("duracionMinutos").getValue(Int::class.java) ?: 0,
+                            fecha = fecha
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
                 trySend(registros)
             }
             override fun onCancelled(error: DatabaseError) {
@@ -74,6 +140,28 @@ class EjercicioRepository @Inject constructor(
             }
         })
         awaitClose { query.removeEventListener(listener) }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getCaloriasQuemadasPorFecha(idPerfil: String, fecha: LocalDate): Flow<Int> = callbackFlow {
+        val fechaStr = fecha.format(DateTimeFormatter.BASIC_ISO_DATE)
+        val listener = caloriasQuemadasRef.child(idPerfil).child(fechaStr)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val calorias = snapshot.getValue(Int::class.java) ?: 0
+                    trySend(calorias)
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    close(error.toException())
+                }
+            })
+        awaitClose { caloriasQuemadasRef.child(idPerfil).child(fechaStr).removeEventListener(listener) }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun actualizarCaloriasQuemadas(idPerfil: String, fecha: LocalDate, calorias: Int) {
+        val fechaStr = fecha.format(DateTimeFormatter.BASIC_ISO_DATE)
+        caloriasQuemadasRef.child(idPerfil).child(fechaStr).setValue(calorias).await()
     }
 
     suspend fun deleteRegistroEjercicio(idPerfil: String, idRegistro: String) {
