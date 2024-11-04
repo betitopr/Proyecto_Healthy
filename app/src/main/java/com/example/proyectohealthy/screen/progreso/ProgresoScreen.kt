@@ -81,7 +81,7 @@ fun ProgresoScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            item {
+            /*item {
                 BarraProgresoObjetivo(
                     progreso = progresoHaciaObjetivo,
                     pesoInicial = currentPerfil?.pesoActual ?: 0f,
@@ -89,7 +89,7 @@ fun ProgresoScreen(
                     objetivo = currentPerfil?.objetivo ?: "",
                     sistemaPeso = currentPerfil?.unidadesPreferences?.sistemaPeso ?: "Métrico (kg)"
                 )
-            }
+            }*/
 
             item {
                 SelectorPeriodo(

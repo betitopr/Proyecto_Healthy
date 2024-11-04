@@ -49,9 +49,16 @@ class RegistroComidaViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // Observar actualizaciones desde el repositorio
+            misAlimentosRepository.alimentoActualizado.collect { alimentoId ->
+                // Recargar los registros cuando se actualiza un alimento
+                cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
+            }
+        }
+
+        viewModelScope.launch {
             _fechaSeleccionada.collect { fecha ->
                 cargarRegistrosComidaPorFecha(fecha)
-                // Cargar calorías quemadas al cambiar la fecha
                 auth.currentUser?.uid?.let { userId ->
                     caloriasQuemadasRepository.getCaloriasQuemadasPorFecha(userId, fecha)
                         .collect { calorias ->

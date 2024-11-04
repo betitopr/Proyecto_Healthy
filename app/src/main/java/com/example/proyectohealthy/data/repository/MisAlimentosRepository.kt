@@ -8,6 +8,8 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -17,6 +19,9 @@ class MisAlimentosRepository @Inject constructor(
 ) {
     private val misAlimentosRef = database.getReference("mis_alimentos")
 
+    private val _alimentoActualizado = MutableSharedFlow<String>()
+    val alimentoActualizado = _alimentoActualizado.asSharedFlow()
+
     suspend fun createOrUpdateMiAlimento(miAlimento: MisAlimentos): String {
         val key = if (miAlimento.id.isBlank()) {
             misAlimentosRef.child(miAlimento.idPerfil).push().key ?: throw IllegalStateException("No se pudo generar una nueva clave")
@@ -25,6 +30,7 @@ class MisAlimentosRepository @Inject constructor(
         }
         val updatedMiAlimento = miAlimento.copy(id = key)
         misAlimentosRef.child(miAlimento.idPerfil).child(key).setValue(updatedMiAlimento).await()
+        _alimentoActualizado.emit(key)
         return key
     }
 

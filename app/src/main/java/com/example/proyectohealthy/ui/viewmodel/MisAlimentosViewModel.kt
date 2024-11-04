@@ -48,8 +48,8 @@ class MisAlimentosViewModel @Inject constructor(
         viewModelScope.launch {
             auth.currentUser?.uid?.let { idPerfil ->
                 misAlimentosRepository.getMisAlimentosFlow(idPerfil).collect { alimentos ->
-                    alimentosSinFiltrar = alimentos.filter { it.idPerfil == idPerfil }
-                    _categoriasDisponibles.value = alimentosSinFiltrar.map { it.categoria }.distinct().sorted()
+                    alimentosSinFiltrar = alimentos
+                    _categoriasDisponibles.value = alimentos.map { it.categoria }.distinct().sorted()
                     aplicarFiltros()
                 }
             } ?: run {
@@ -137,8 +137,12 @@ class MisAlimentosViewModel @Inject constructor(
     }
 
     fun searchMisAlimentosByNombre(query: String) {
-        _currentQuery.value = query
-        aplicarFiltros()
+        viewModelScope.launch {
+            auth.currentUser?.uid?.let { idPerfil ->
+                _currentQuery.value = query
+                aplicarFiltros()
+            }
+        }
     }
 
     // Mantener las funciones existentes
