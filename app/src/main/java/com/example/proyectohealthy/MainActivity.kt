@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.rememberNavController
 import com.example.proyectohealthy.navigation.AppNavigation
 import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme
@@ -21,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -34,6 +36,8 @@ class MainActivity : ComponentActivity() {
         try {
             setContent {
                 ProyectoHealthyTheme {
+
+
                     AppNavigationWrapper()
                 }
             }
@@ -51,6 +55,19 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppNavigationWrapper() {
         val navController = rememberNavController()
+
+        // Manejar la navegación desde el widget de forma inmediata
+        LaunchedEffect(Unit) {
+            if (intent?.getStringExtra("destination") == "alimentos") {
+                // Navegar directamente a alimentos sin pasar por home
+                navController.navigate("alimentos") {
+                    // Esto evita que pase por home
+                    launchSingleTop = true
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+
         AppNavigation(navController = navController)
     }
 }

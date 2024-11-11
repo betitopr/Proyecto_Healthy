@@ -38,7 +38,7 @@ fun ProgresoNutricionalComponent(
     progresoNutricional: ProgresoNutricional,
     metasNutricionales: MetasNutricionales
 ) {
-    val datosCompletos = metasNutricionales.calorias > 0
+    val datosCompletos = (metasNutricionales.grasas == 0 && metasNutricionales.calorias == 0)
 
     // Valores por defecto si no hay datos
     val metasMostradas = if (datosCompletos) {

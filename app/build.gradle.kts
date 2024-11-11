@@ -104,6 +104,13 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.moshi)
     implementation(libs.androidx.adapters)
+
+    // For AppWidgets support
+    implementation ("androidx.glance:glance-appwidget:1.1.0")
+
+    // For interop APIs with Material 3
+    implementation ("androidx.glance:glance-material3:1.1.0")
+
     //Dependencias para Retrofit (llamadas de red)
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
