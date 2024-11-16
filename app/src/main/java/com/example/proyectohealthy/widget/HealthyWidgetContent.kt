@@ -1,14 +1,16 @@
 package com.example.proyectohealthy.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.Button
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -35,10 +37,18 @@ import androidx.glance.color.ColorProviders
 import androidx.compose.ui.graphics.Color
 import androidx.glance.ButtonColors
 import androidx.glance.action.ActionParameters
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.layout.Box
 import androidx.glance.unit.ColorProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.glance.ButtonDefaults
+import androidx.glance.Button
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkManager
 import com.example.proyectohealthy.MainActivity
-import com.example.proyectohealthy.data.local.entity.Perfil
 import com.example.proyectohealthy.data.local.entity.RegistroDiario
 import com.example.proyectohealthy.data.repository.RegistroDiarioRepository
 import com.example.proyectohealthy.ui.viewmodel.ConsumoAguaViewModel
@@ -49,9 +59,13 @@ import com.example.proyectohealthy.ui.viewmodel.AuthViewModel
 import com.example.proyectohealthy.ui.viewmodel.MetasNutricionales
 import com.example.proyectohealthy.ui.viewmodel.ProgresoNutricional
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.withContext
 
 import java.time.LocalDate
 import javax.inject.Inject
@@ -66,6 +80,9 @@ class HealthyWidgetContent @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        withContext(Dispatchers.IO) {
+
+
         try {
             val currentUser = auth.currentUser
             val isAuthenticated = currentUser != null
@@ -134,9 +151,37 @@ class HealthyWidgetContent @Inject constructor(
                     Column(
                         modifier = GlanceModifier
                             .fillMaxSize()
-                            .background(GlanceTheme.colors.background)
+                            .background(ColorProvider(Color(0xFFF5F5F5))) // Fondo gris claro
                             .padding(12.dp)
                     ) {
+
+                        Row(
+                            modifier = GlanceModifier
+                                .fillMaxWidth()
+                                .background(ColorProvider(Color(0xFF4CAF50))) // Verde primario
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Healthy",
+                                style = TextStyle(
+                                    color = ColorProvider(Color.White),
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+
+                            Button(
+                                text = "↻",
+                                onClick = actionRunCallback<RefreshAction>(),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = ColorProvider(Color.White),
+                                    contentColor = ColorProvider(Color(0xFF4CAF50))
+                                ),
+                                modifier = GlanceModifier.padding(start = 8.dp)
+                            )
+                        }
                         // Usar los mismos datos que en ProgresoNutricionalComponent
                         val datosCompletos = metasNutricionales?.calorias ?: 0 > 0
 
@@ -157,27 +202,46 @@ class HealthyWidgetContent @Inject constructor(
                             ProgresoNutricional()
                         }
 
-                        ProgresoCaloriasWidget(
-                            calorias = progresoMostrado.caloriasNetas,
-                            caloriasObjetivo = metasMostradas.calorias
-                        )
+                        Box(
+                            modifier = GlanceModifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .background(ColorProvider(Color.White))
+                                .cornerRadius(16.dp) // Bordes redondeados
+                                .padding(16.dp)
+                        ) {
+                            Column {
+                                ProgresoCaloriasWidget(
+                                    calorias = progresoMostrado.caloriasNetas,
+                                    caloriasObjetivo = metasMostradas.calorias,
+                                )
 
-                        Spacer(modifier = GlanceModifier.height(8.dp))
+                                Spacer(modifier = GlanceModifier.height(12.dp))
 
-                        MacronutrientesWidget(
-                            progreso = progresoMostrado,
-                            metas = metasMostradas
-                        )
+                                MacronutrientesWidget(
+                                    progreso = progresoMostrado,
+                                    metas = metasMostradas
+                                )
+                            }
+                        }
 
                         Spacer(modifier = GlanceModifier.height(12.dp))
 
+                        // Botón de registro con mejor estilo
                         Button(
                             text = "Registrar Alimentos",
-                            modifier = GlanceModifier.fillMaxWidth(),
+                            modifier = GlanceModifier
+                                .fillMaxWidth()
+                                .cornerRadius(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = ColorProvider(Color.White),
+                                contentColor = ColorProvider(Color(0xFF4CAF50))
+                            ),
                             onClick = actionStartActivity(
                                 MainActivity::class.java,
                                 actionParametersOf(
-                                    ActionParameters.Key<String>("destination") to "alimentos"
+                                    ActionParameters.Key<String>("openScreen") to "home",
+                                    ActionParameters.Key<String>("initialTab") to "alimentos"
                                 )
                             )
                         )
@@ -215,6 +279,7 @@ class HealthyWidgetContent @Inject constructor(
                 }
             }
         }
+            }
     }
 }
 
@@ -243,7 +308,7 @@ private fun ProgresoCaloriasWidget(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .height(8.dp),
-            color = WidgetColors.ProteinaColor,
+            color = WidgetColors.CaloriasColor,
             backgroundColor = WidgetColors.ProgressBackground
         )
     }
@@ -269,21 +334,21 @@ private fun MacronutrientesWidget(
         nombre = "Proteínas",
         progreso = registroDiario.proteinasConsumidas.toInt(),
         meta = metas.proteinas.toInt(),
-        color = WidgetColors.Primary
+        color = WidgetColors.ProteinaColor
     )
 
     MacronutrienteBar(
         nombre = "Grasas",
         progreso = registroDiario.grasasConsumidas.toInt(),
         meta = metas.grasas.toInt(),
-        color = WidgetColors.Tertiary
+        color = WidgetColors.GrasasColor
     )
 
     MacronutrienteBar(
         nombre = "Carbohidratos",
         progreso = registroDiario.carbohidratosConsumidos.toInt(),
         meta = metas.carbohidratos.toInt(),
-        color = WidgetColors.Secondary
+        color = WidgetColors.CarbohidratosColor
     )
 
 
@@ -320,16 +385,39 @@ private fun MacronutrienteBar(
     }
 }
 
+class RefreshAction : ActionCallback {
+    @RequiresApi(Build.VERSION_CODES.O)
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        withContext(Dispatchers.Default) {
+            try {
+                val widget = HealthyWidgetContent(
+                    registroDiarioRepository = RegistroDiarioRepository(FirebaseDatabase.getInstance()),
+                    perfilRepository = PerfilRepository(FirebaseDatabase.getInstance())
+                )
+                widget.update(context, glanceId)
+
+                // Forzar actualización del sistema
+                context.sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE))
+            } catch (e: Exception) {
+                Log.e("RefreshAction", "Error refreshing widget", e)
+            }
+        }
+    }
+}
+
 object WidgetColors {
-    // Usamos los colores del tema Light
-    val Primary = androidx.glance.unit.ColorProvider(Color(0xFF4CAF50))    // LightColorScheme.primary
-    val Secondary = androidx.glance.unit.ColorProvider(Color(0xFFFF9800))  // LightColorScheme.secondary
-    val Tertiary = androidx.glance.unit.ColorProvider(Color(0xFF03A9F4))   // LightColorScheme.tertiary
-    val ProteinaColor = androidx.glance.unit.ColorProvider(Color(0xFF4CAF50))
-    val CaloriasColor = androidx.glance.unit.ColorProvider(Color.Yellow)
-    val GrasasColor = androidx.glance.unit.ColorProvider(Color(0xFFFF9800))
-    val CarbohidratosColor = androidx.glance.unit.ColorProvider(Color(0xFF03A9F4))
-    val Background = androidx.glance.unit.ColorProvider(Color.White)
-    val TextColor = androidx.glance.unit.ColorProvider(Color.Black)
-    val ProgressBackground = androidx.glance.unit.ColorProvider(Color.LightGray)
+    val Primary = ColorProvider(Color(0xFF4CAF50))    // Verde primario
+    val Secondary = ColorProvider(Color(0xFFFF9800))  // Naranja
+    val Tertiary = ColorProvider(Color(0xFF03A9F4))   // Azul
+    val ProteinaColor = ColorProvider(Color(0xFF4CAF50))
+    val CaloriasColor = ColorProvider(Color(0xFF4CAF50))
+    val GrasasColor = ColorProvider(Color(0xFFFF9800))
+    val CarbohidratosColor = ColorProvider(Color(0xFF03A9F4))
+    val Background = ColorProvider(Color.White)
+    val TextColor = ColorProvider(Color(0xFF333333)) // Gris oscuro para texto
+    val ProgressBackground = ColorProvider(Color(0xFFE0E0E0)) // Gris claro para fondos
 }

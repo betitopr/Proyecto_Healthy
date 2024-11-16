@@ -10,6 +10,7 @@ import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.example.proyectohealthy.data.repository.*
 import com.example.proyectohealthy.util.RetrofitClient
+import com.example.proyectohealthy.widget.WidgetUpdateManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,9 +34,11 @@ object AppModule {
     fun provideOpenFoodFactsApi(): OpenFoodFactsApi {
         return RetrofitClient.openFoodFactsApi
     }
-
-
-
+    @Provides
+    @Singleton
+    fun provideContext(@ApplicationContext context: Context): Context {
+        return context
+    }
 
     // Firebase providers
     @Provides
@@ -92,6 +95,17 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideWidgetUpdateManager(
+        @ApplicationContext context: Context,
+        registroDiarioRepository: RegistroDiarioRepository,
+        perfilRepository: PerfilRepository,
+        auth: FirebaseAuth
+    ): WidgetUpdateManager {
+        return WidgetUpdateManager(context, registroDiarioRepository, perfilRepository, auth)
+    }
 
     @Provides
     @Singleton

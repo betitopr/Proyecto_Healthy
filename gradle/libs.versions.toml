@@ -24,6 +24,8 @@ firebaseDatabaseKtx = "21.0.0"
 playServicesBasement = "18.4.0"
 playServicesCodeScanner = "16.1.0"
 material = "1.12.0"
+hiltCommon = "1.2.0"
+hiltWork = "1.2.0"
 
 [libraries]
 #Libreria de Zxing
@@ -56,6 +58,8 @@ firebase-database-ktx = { group = "com.google.firebase", name = "firebase-databa
 play-services-basement = { group = "com.google.android.gms", name = "play-services-basement", version.ref = "playServicesBasement" }
 play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "playServicesCodeScanner" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.ref = "hiltCommon" }
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
 
 
 [plugins]

@@ -38,7 +38,7 @@ fun ProgresoNutricionalComponent(
     progresoNutricional: ProgresoNutricional,
     metasNutricionales: MetasNutricionales
 ) {
-    val datosCompletos = (metasNutricionales.grasas == 0 && metasNutricionales.calorias == 0)
+    val datosCompletos = metasNutricionales.calorias > 0
 
     // Valores por defecto si no hay datos
     val metasMostradas = if (datosCompletos) {
@@ -52,7 +52,6 @@ fun ProgresoNutricionalComponent(
         )
     }
 
-    // Asegurarnos de usar las calorías netas correctamente
     val progresoMostrado = if (datosCompletos) {
         progresoNutricional.copy(
             caloriasNetas = progresoNutricional.calorias - progresoNutricional.caloriasQuemadas
@@ -73,91 +72,88 @@ fun ProgresoNutricionalComponent(
         progresoNutricional.calorias - progresoNutricional.caloriasQuemadas
     }
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(16.dp)
     ) {
-        // Gráfico circular para calorías
-        Box(
-            modifier = Modifier
-                .size(150.dp)
-                .weight(1f),
-            contentAlignment = Alignment.Center
+        // Información principal de calorías
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            CircularProgressIndicator(
-                progress = { 1f },
-                modifier = Modifier.fillMaxSize(),
-                color = Color.LightGray,
-                strokeWidth = 8.dp
-            )
-            CircularProgressIndicator(
-                progress = { (ultimasCaloriasNetas.toFloat() / metasMostradas.calorias).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 8.dp
-            )
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Gráfico circular para calorías netas
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .weight(1f),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "$ultimasCaloriasNetas",
-                    style = MaterialTheme.typography.headlineSmall
+                CircularProgressIndicator(
+                    progress = { 1f },
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.LightGray,
+                    strokeWidth = 8.dp
                 )
-                Text(
-                    text = "/ ${metasMostradas.calorias}",
-                    style = MaterialTheme.typography.bodySmall
+                CircularProgressIndicator(
+                    progress = {
+                        (progresoNutricional.caloriasNetas.toFloat() / metasMostradas.calorias).coerceIn(
+                            0f,
+                            1f
+                        )
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 8.dp
                 )
-                Text(
-                    text = "kcal",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                // Mostrar desglose de calorías
-                if (progresoNutricional.caloriasQuemadas > 0) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = "(${progresoNutricional.calorias} - ${progresoNutricional.caloriasQuemadas})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "${progresoNutricional.caloriasNetas}",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Text(
+                        text = "/ ${metasMostradas.calorias}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "kcal netas",
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
+            // Barras de macronutrientes
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 16.dp)
+            ) {
+                MacronutrienteProgressBar(
+                    "Proteínas",
+                    progresoNutricional.proteinas,
+                    metasMostradas.proteinas,
+                    MaterialTheme.colorScheme.primary
+                )
+                MacronutrienteProgressBar(
+                    "Grasas",
+                    progresoNutricional.grasas,
+                    metasMostradas.grasas,
+                    MaterialTheme.colorScheme.secondary
+                )
+                MacronutrienteProgressBar(
+                    "Carbohidratos",
+                    progresoNutricional.carbohidratos,
+                    metasMostradas.carbohidratos,
+                    MaterialTheme.colorScheme.tertiary
+                )
+            }
         }
-
-        // Barras de macronutrientes
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp)
-        ) {
-            MacronutrienteProgressBar(
-                "Proteínas",
-                progresoMostrado.proteinas,
-                metasMostradas.proteinas,
-                MaterialTheme.colorScheme.primary
-            )
-            MacronutrienteProgressBar(
-                "Grasas",
-                progresoMostrado.grasas,
-                metasMostradas.grasas,
-                MaterialTheme.colorScheme.secondary
-            )
-            MacronutrienteProgressBar(
-                "Carbohidratos",
-                progresoMostrado.carbohidratos,
-                metasMostradas.carbohidratos,
-                MaterialTheme.colorScheme.tertiary
-            )
-        }
-    }
-
-    // Información adicional de calorías quemadas
-    if (progresoNutricional.caloriasQuemadas > 0) {
+        // Siempre mostrar el desglose de calorías
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
@@ -167,7 +163,10 @@ fun ProgresoNutricionalComponent(
             Text(
                 text = "Calorías quemadas: ${progresoNutricional.caloriasQuemadas}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.secondary
+                color = if (progresoNutricional.caloriasQuemadas > 0)
+                    MaterialTheme.colorScheme.secondary
+                else
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }

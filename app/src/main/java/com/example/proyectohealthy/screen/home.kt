@@ -61,7 +61,6 @@ fun HomeScreen(
     val progresoNutricional by registroComidaViewModel.progresoNutricional.collectAsState()
 
     var tipoComidaSeleccionado by remember { mutableStateOf("") }
-
     val fechaSeleccionada by registroComidaViewModel.fechaSeleccionada.collectAsState()
     val registrosComidaDiarios by registroComidaViewModel.registrosComidaDiarios.collectAsState()
     val registrosEjercicio by ejercicioViewModel.registrosEjercicio.collectAsState()
@@ -69,22 +68,22 @@ fun HomeScreen(
     val favoritosViewModel: FavoritosViewModel = hiltViewModel()
     val caloriasQuemadas by ejercicioViewModel.caloriasQuemadas.collectAsState()
 
-
     var showIngresoEjercicio by remember { mutableStateOf(false) }
     var showAlimentoBottomSheet by remember { mutableStateOf(false) }
     var showEjercicioBottomSheet by remember { mutableStateOf(false) }
     var showIngresoAlimento by remember { mutableStateOf(false) }
 
     // Efecto para sincronizar datos cuando cambia la fecha
-    LaunchedEffect(fechaSeleccionada) {
-        registroComidaViewModel.cargarRegistrosComidaPorFecha(fechaSeleccionada)
+    LaunchedEffect(fechaSeleccionada, caloriasQuemadas) {
+        // Actualizaciones relacionadas con la fecha
         consumoAguaViewModel.setFechaSeleccionada(fechaSeleccionada)
         ejercicioViewModel.cargarRegistrosEjercicioPorFecha(fechaSeleccionada)
-    }
 
-    // Efecto para actualizar RegistroComidaViewModel cuando cambian las calorías quemadas
-    LaunchedEffect(caloriasQuemadas) {
-        registroComidaViewModel.actualizarCaloriasQuemadas(caloriasQuemadas)
+        // Cargar registros de comida y actualizar calorías quemadas en una sola operación
+        registroComidaViewModel.cargarDatosCompletos(
+            fecha = fechaSeleccionada,
+            caloriasQuemadas = caloriasQuemadas
+        )
     }
 
     Scaffold(

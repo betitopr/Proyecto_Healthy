@@ -107,7 +107,7 @@ dependencies {
 
     // For AppWidgets support
     implementation ("androidx.glance:glance-appwidget:1.1.0")
-
+    implementation("androidx.glance:glance:1.0.0")
     // For interop APIs with Material 3
     implementation ("androidx.glance:glance-material3:1.1.0")
 
@@ -119,6 +119,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 
     // Firebase (usando Firebase BOM para gestionar versiones)
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
@@ -135,6 +137,8 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.48")
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.hilt.common)
+    implementation(libs.androidx.hilt.work)
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
@@ -149,6 +153,10 @@ dependencies {
 
     // Gson
     implementation("com.google.code.gson:gson:2.10")
+
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
+    implementation ("androidx.compose.runtime:runtime-livedata:1.5.0")
+
 
     // Multidex
     implementation("androidx.multidex:multidex:2.0.1")
