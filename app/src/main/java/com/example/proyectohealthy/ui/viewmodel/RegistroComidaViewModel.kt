@@ -1,12 +1,11 @@
 package com.example.proyectohealthy.ui.viewmodel
 
-import android.annotation.SuppressLint
+import android.appwidget.AppWidgetManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectohealthy.data.local.entity.Alimento
@@ -20,22 +19,16 @@ import com.example.proyectohealthy.data.repository.MisAlimentosRepository
 import com.example.proyectohealthy.data.repository.PerfilRepository
 import com.example.proyectohealthy.data.repository.RegistroComidaRepository
 import com.example.proyectohealthy.data.repository.RegistroDiarioRepository
-import com.example.proyectohealthy.widget.HealthyWidget
-import com.example.proyectohealthy.widget.HealthyWidgetContent
 import com.example.proyectohealthy.widget.WidgetUpdateManager
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.ZoneId
-import java.util.*
 import javax.inject.Inject
 
 // RegistroComidaViewModel.kt
@@ -67,10 +60,6 @@ class RegistroComidaViewModel @Inject constructor(
 
 
     private val updateJob = SupervisorJob()
-    private val updateScope = CoroutineScope(Dispatchers.Default + updateJob)
-
-    private val updateDebouncer = MutableStateFlow(0L)
-
 
     init {
         viewModelScope.launch {
@@ -166,54 +155,30 @@ class RegistroComidaViewModel @Inject constructor(
                 )
 
                 registroDiarioRepository.guardarRegistroDiario(registroDiario)
-                widgetUpdateManager.updateWidgets()
+                widgetUpdateManager.forceImmediateUpdate()
             }
         } catch (e: Exception) {
             Log.e("RegistroComidaVM", "Error cargando datos completos: ${e.message}")
         }
     }
 
-
-    private fun updateWidget() {
-        viewModelScope.launch {
-            widgetUpdateManager.updateWidgets()
-        }
-    }
-
-    private fun triggerWidgetUpdate() {
-        updateDebouncer.value = System.currentTimeMillis()
-    }
-
-    // Reemplaza todas las llamadas actuales a actualizarWidget() con:
-    private fun actualizarDatosYWidget() {
+    private fun actualizarWidget() {
         viewModelScope.launch {
             try {
-                cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
-                triggerWidgetUpdate()
+                // Forzar actualización del widget
+                widgetUpdateManager.forceImmediateUpdate()
+
+                // Forzar actualización del sistema
+                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+                context.sendBroadcast(intent)
             } catch (e: Exception) {
-                Log.e("RegistroComidaVM", "Error actualizando datos y widget", e)
+                Log.e("ViewModel", "Error actualizando widget", e)
             }
         }
     }
 
 
 
-    private fun setupDataObservers() {
-        viewModelScope.launch {
-            combine(
-                _fechaSeleccionada,
-                auth.currentUser?.uid?.let { uid ->
-                    caloriasQuemadasRepository.getCaloriasQuemadasPorFecha(uid, _fechaSeleccionada.value)
-                } ?: flowOf(0)
-            ) { fecha, calorias ->
-                Pair(fecha, calorias)
-            }.collect { (fecha, calorias) ->
-                cargarRegistrosComidaPorFecha(fecha)
-                actualizarCaloriasQuemadas(calorias)
-                //updateWidget()
-            }
-        }
-    }
 
     fun setFechaSeleccionada(fecha: LocalDate) {
         viewModelScope.launch {
@@ -245,9 +210,9 @@ class RegistroComidaViewModel @Inject constructor(
                 registroComidaRepository.createOrUpdateRegistroComida(nuevoRegistro)
                 cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
                 actualizarRegistroDiario(_fechaSeleccionada.value)
-                //actualizarDatosYWidget()
-                //updateWidget()
-                widgetUpdateManager.requestUpdate()
+
+                actualizarWidget()
+
 
                 //cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
             } catch (e: Exception) {
@@ -270,10 +235,9 @@ class RegistroComidaViewModel @Inject constructor(
                     misAlimentos = mapOf(miAlimento.id to cantidad)
                 )
                 registroComidaRepository.createOrUpdateRegistroComida(nuevoRegistro)
-                //updateWidget()
                 cargarRegistrosComidaPorFecha(_fechaSeleccionada.value)
-                //actualizarDatosYWidget()
-                widgetUpdateManager.requestUpdate()
+                actualizarWidget()
+
 
 
 
@@ -287,10 +251,9 @@ class RegistroComidaViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 registroComidaRepository.deleteRegistroComida(registro.idPerfil, registro.id, registro.fecha)
-                //actualizarDatosYWidget()
 
                 cargarRegistrosComidaPorFecha(registro.fecha)
-                widgetUpdateManager.requestUpdate()
+                actualizarWidget()
 
             } catch (e: Exception) {
                 Log.e("RegistroComidaViewModel", "Error al eliminar registro: ${e.message}")
@@ -344,9 +307,8 @@ class RegistroComidaViewModel @Inject constructor(
             )
 
             registroDiarioRepository.guardarRegistroDiario(registroDiario)
-            widgetUpdateManager.requestUpdate()
+            actualizarWidget()
 
-            //updateWidget()
             _progresoNutricional.value = ProgresoNutricional(
                 calorias = caloriasTotal,
                 proteinas = proteinasTotal.toInt(),
@@ -359,29 +321,6 @@ class RegistroComidaViewModel @Inject constructor(
             Log.e("RegistroComidaVM", "Error actualizando registro diario", e)
         }
     }
-
-    // Agregar método para actualizar calorías quemadas
-    fun actualizarCaloriasQuemadas(caloriasQuemadas: Int) {
-        viewModelScope.launch {
-            try {
-                _caloriasQuemadas.value = caloriasQuemadas
-
-                // Actualizar el registro diario con las nuevas calorías quemadas
-                cargarDatosCompletos(
-                    fecha = _fechaSeleccionada.value,
-                    caloriasQuemadas = caloriasQuemadas
-                )
-
-                // Actualizar widget después de procesar los cambios
-                widgetUpdateManager.updateWidgets()
-            } catch (e: Exception) {
-                Log.e("RegistroComidaVM", "Error actualizando calorías quemadas: ${e.message}")
-            }
-        }
-    }
-
-
-
 }
 
 

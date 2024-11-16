@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.glance.GlanceId
@@ -48,18 +49,22 @@ class HealthyWidgetWorker @AssistedInject constructor(
 
     @RequiresApi(Build.VERSION_CODES.O)
     override suspend fun doWork(): Result = withContext(Dispatchers.Main) {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "HealthyApp:WorkerWakeLock"
+        )
+
         return@withContext try {
-            // Intentar actualizar los widgets
-            widgetUpdateManager.updateWidgets()
-            // Si la actualización es exitosa, devolver éxito
+            wakeLock.acquire(10000) // 10 segundos máximo
+            widgetUpdateManager.forceImmediateUpdate()
             Result.success()
         } catch (e: Exception) {
-            Log.e("HealthyWidgetWorker", "Error updating widgets", e)
-            // Si hay error y tenemos menos de 3 intentos, reintentamos
-            if (runAttemptCount < 3) {
-                Result.retry()
-            } else {
-                Result.failure()
+            Log.e("HealthyWidgetWorker", "Error updating widget", e)
+            if (runAttemptCount < 3) Result.retry() else Result.failure()
+        } finally {
+            if (wakeLock.isHeld) {
+                wakeLock.release()
             }
         }
     }
@@ -76,62 +81,42 @@ class WidgetUpdateManager @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val updateMutex = Mutex()
 
-    init {
-        observeDataChanges()
-    }
-
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun observeDataChanges() {
-        scope.launch {
-            auth.currentUser?.uid?.let { userId ->
-                // Observe registro diario changes
-                registroDiarioRepository.obtenerRegistroDia(userId, LocalDate.now())
-                    .distinctUntilChanged()
-                    .collect {
-                        updateWidgets()
-                    }
-            }
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun updateWidgets() {
+    suspend fun forceImmediateUpdate() {
         updateMutex.withLock {
-            val manager = GlanceAppWidgetManager(context)
-            val glanceIds = manager.getGlanceIds(HealthyWidgetContent::class.java)
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            val wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "HealthyApp::WidgetUpdate"
+            )
 
-            glanceIds.forEach { glanceId ->
-                try {
-                    HealthyWidgetContent(
-                        registroDiarioRepository = registroDiarioRepository,
-                        perfilRepository = perfilRepository,
-                        auth = auth
-                    ).update(context, glanceId)
+            try {
+                wakeLock.acquire(5000)
+                val manager = GlanceAppWidgetManager(context)
+                val glanceIds = manager.getGlanceIds(HealthyWidgetContent::class.java)
 
-                    // Force widget refresh
-                    context.sendBroadcast(Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE))
-                } catch (e: Exception) {
-                    Log.e("WidgetManager", "Error updating widget", e)
+                glanceIds.forEach { glanceId ->
+                    withContext(Dispatchers.Main) {
+                        HealthyWidgetContent(
+                            registroDiarioRepository = registroDiarioRepository,
+                            perfilRepository = perfilRepository,
+                            auth = auth
+                        ).update(context, glanceId)
+                    }
+                }
+
+                // Forzar actualización del sistema
+                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.sendBroadcast(intent)
+
+            } catch (e: Exception) {
+                Log.e("WidgetManager", "Error en actualización forzada", e)
+            } finally {
+                if (wakeLock.isHeld) {
+                    wakeLock.release()
                 }
             }
         }
-    }
-
-    private val _updateTrigger = MutableStateFlow(0L)
-
-    init {
-        scope.launch {
-            _updateTrigger
-                .debounce(500) // Evita actualizaciones muy frecuentes
-                .collect {
-                    updateWidgets()
-                }
-        }
-    }
-
-    fun requestUpdate() {
-        _updateTrigger.value = System.currentTimeMillis()
     }
 }
-
-
