@@ -15,24 +15,32 @@ import com.example.proyectohealthy.navigation.AppNavigation
 import com.example.proyectohealthy.ui.theme.ProyectoHealthyTheme
 import com.google.firebase.database.FirebaseDatabase
 import dagger.hilt.android.AndroidEntryPoint
-
-
+import javax.inject.Inject
 
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @Inject
+    lateinit var appLifecycleHandler: AppLifecycleHandler
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         // Manejar excepciones no capturadas
         Thread.setDefaultUncaughtExceptionHandler { _, e ->
             Log.e("MainActivity", "Excepción no capturada: ${e.message}", e)
             mostrarToastError("Error inesperado: ${e.message}")
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                101
+            )
+        }
 
+        lifecycle.addObserver(appLifecycleHandler)
         try {
             setContent {
                 ProyectoHealthyTheme {

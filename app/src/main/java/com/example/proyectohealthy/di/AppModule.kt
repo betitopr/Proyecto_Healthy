@@ -3,6 +3,7 @@ package com.example.proyectohealthy.di
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import com.example.proyectohealthy.AppLifecycleHandler
 import com.example.proyectohealthy.data.remote.OpenFoodFactsApi
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -111,4 +112,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFirebaseStorage(): FirebaseStorage = FirebaseStorage.getInstance()
+
+    @Module
+    @InstallIn(SingletonComponent::class)
+    object AppModule {
+        @Provides
+        @Singleton
+        fun provideAppLifecycleHandler(@ApplicationContext context: Context): AppLifecycleHandler {
+            return AppLifecycleHandler(context)
+        }
+    }
 }

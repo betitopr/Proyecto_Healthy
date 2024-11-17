@@ -19,6 +19,8 @@ import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.work.*
+import com.example.proyectohealthy.notification.ComidaNotificationWorker
+import com.example.proyectohealthy.notification.setupNotificationAlarms
 import com.example.proyectohealthy.widget.HealthyWidgetWorker
 
 
@@ -34,9 +36,10 @@ class ProyectoHealthyApplication : Application(), Configuration.Provider {
             .build()
     }
 
+
+
     override fun onCreate() {
         super.onCreate()
-
         // Inicializar Firebase
         FirebaseApp.initializeApp(this)
 
@@ -46,6 +49,7 @@ class ProyectoHealthyApplication : Application(), Configuration.Provider {
                 .addOnSuccessListener { Log.d("Firebase", "Write successful") }
                 .addOnFailureListener { e -> Log.e("Firebase", "Write failed", e) }
         }
+        setupNotificationAlarms(this)
 
         // Solicitar ignorar optimización de batería para actualizaciones del widget
         try {
@@ -94,4 +98,26 @@ class ProyectoHealthyApplication : Application(), Configuration.Provider {
             Log.e("Application", "Error configurando actualizaciones del widget", e)
         }
     }
+
+    private fun setupNotificationWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        // Programar verificación cada hora
+        val periodicWorkRequest = PeriodicWorkRequestBuilder<ComidaNotificationWorker>(
+            1, TimeUnit.HOURS
+        )
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "comida_notification_worker",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            periodicWorkRequest
+        )
+    }
+
+
+
 }
