@@ -173,6 +173,8 @@ dependencies {
 
     // MockK
     testImplementation("io.mockk:mockk:1.12.2")
+    //corutinas test
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
 
     //implementaciones necesarioss para mi zzz
     implementation("com.github.bumptech.glide:glide:4.12.0")

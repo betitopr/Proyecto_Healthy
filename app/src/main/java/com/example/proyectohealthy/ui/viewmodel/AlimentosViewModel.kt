@@ -29,8 +29,9 @@ class AlimentoViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
-
+    //Modificamos currentQuery pra que sea accesible como un stateFlow
     private val _currentQuery = MutableStateFlow("")
+    val currentQuery: StateFlow<String> = _currentQuery.asStateFlow()
 
     // Nuevos estados para filtros
     private val _filtros = MutableStateFlow(AlimentoFiltros())
@@ -173,22 +174,7 @@ class AlimentoViewModel @Inject constructor(
         }
     }
 
-    // Estas funciones se mantienen pero ahora usan el sistema de filtros
-    // fun getAlimentosByCategoria(categoria: String) {
-    //     viewModelScope.launch {
-    //         alimentoRepository.getAlimentosByCategoria(categoria).collect {
-    //             _alimentos.value = it
-    //         }
-    //     }
-    // }
 
-    // fun getAlimentosByDateRange(startDate: Date, endDate: Date) {
-    //     viewModelScope.launch {
-    //         alimentoRepository.getAlimentosByDateRange(startDate, endDate).collect {
-    //             _alimentos.value = it
-    //         }
-    //     }
-    // }
 
     fun clearError() {
         _error.value = null
