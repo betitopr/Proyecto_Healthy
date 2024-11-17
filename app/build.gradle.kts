@@ -140,6 +140,10 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.work)
+    testImplementation(libs.junit.junit)
+    testImplementation(libs.junit.junit)
+    testImplementation(libs.junit.junit)
+    testImplementation(libs.junit.junit)
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
@@ -174,7 +178,14 @@ dependencies {
     // MockK
     testImplementation("io.mockk:mockk:1.12.2")
     //corutinas test
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+
+    // Kotlin Coroutines Play Services
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    testImplementation ("androidx.arch.core:core-testing:2.2.0")
+
 
     //implementaciones necesarioss para mi zzz
     implementation("com.github.bumptech.glide:glide:4.12.0")
