@@ -7,6 +7,7 @@ import com.example.proyectohealthy.data.remote.OpenFoodFactsApi
 import com.example.proyectohealthy.data.remote.Product
 import com.example.proyectohealthy.data.repository.AlimentoScannedRepository
 import com.example.proyectohealthy.data.repository.MisAlimentosRepository
+import com.example.proyectohealthy.data.repository.ProductResult
 import com.example.proyectohealthy.ui.viewmodel.ScannerViewModel.UiState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -53,42 +54,48 @@ class ScannerViewModel @Inject constructor(
                 }
 
                 // Si no existe, obtener de la API
-                val response = repository.getProductInfo(barcode)
-                val product = response.product
+                when (val response = repository.getProductInfo(barcode)) {
+                    is ProductResult.Success -> {
+                        val product = response.data.product
 
-                // Verificar si existe por nombre
-                val existingByName = misAlimentosRepository.getMisAlimentosFlow(userId)
-                    .first()
-                    .find { it.nombre.equals(product.product_name, ignoreCase = true) }
+                        // Verificar si existe por nombre
+                        val existingByName = misAlimentosRepository.getMisAlimentosFlow(userId)
+                            .first()
+                            .find { it.nombre.equals(product.product_name, ignoreCase = true) }
 
-                if (existingByName != null) {
-                    _uiState.value = UiState.Success(existingByName)
-                    return@launch
+                        if (existingByName != null) {
+                            _uiState.value = UiState.Success(existingByName)
+                            return@launch
+                        }
+
+                        // Crear nuevo MiAlimento
+                        val miAlimento = MisAlimentos(
+                            idPerfil = userId,
+                            nombre = product.product_name ?: "Desconocido",
+                            marca = product.brands ?: "Desconocida",
+                            categoria = product.categories?.split(',')?.firstOrNull() ?: "Sin categoría",
+                            nombrePorcion = "100g",
+                            pesoPorcion = 100f,
+                            calorias = product.nutriments?.energy_100g?.toInt() ?: 0,
+                            proteinas = product.nutriments?.proteins_100g ?: 0f,
+                            carbohidratos = product.nutriments?.carbohydrates_100g ?: 0f,
+                            grasas = product.nutriments?.fat_100g ?: 0f,
+                            grasasSaturadas = product.nutriments?.saturated_fat_100g ?: 0f,
+                            grasasTrans = 0f,
+                            sodio = (product.nutriments?.salt_100g ?: 0f) * 400f,
+                            fibra = product.nutriments?.fiber_100g ?: 0f,
+                            azucares = product.nutriments?.sugars_100g ?: 0f,
+                            codigoQr = barcode,
+                            diaCreado = Date()
+                        )
+
+                        val id = misAlimentosRepository.createOrUpdateMiAlimento(miAlimento)
+                        _uiState.value = UiState.Success(miAlimento.copy(id = id))
+                    }
+                    is ProductResult.Error -> {
+                        _uiState.value = UiState.Error(response.exception.message ?: "Error desconocido")
+                    }
                 }
-
-                // Crear nuevo MiAlimento
-                val miAlimento = MisAlimentos(
-                    idPerfil = userId,
-                    nombre = product.product_name ?: "Desconocido",
-                    marca = product.brands ?: "Desconocida",
-                    categoria = product.categories?.split(',')?.firstOrNull() ?: "Sin categoría",
-                    nombrePorcion = "100g",
-                    pesoPorcion = 100f,
-                    calorias = product.nutriments?.energy_100g?.toInt() ?: 0,
-                    proteinas = product.nutriments?.proteins_100g ?: 0f,
-                    carbohidratos = product.nutriments?.carbohydrates_100g ?: 0f,
-                    grasas = product.nutriments?.fat_100g ?: 0f,
-                    grasasSaturadas = product.nutriments?.saturated_fat_100g ?: 0f,
-                    grasasTrans = 0f,
-                    sodio = (product.nutriments?.salt_100g ?: 0f) * 400f,
-                    fibra = product.nutriments?.fiber_100g ?: 0f,
-                    azucares = product.nutriments?.sugars_100g ?: 0f,
-                    codigoQr = barcode,
-                    diaCreado = Date()
-                )
-
-                val id = misAlimentosRepository.createOrUpdateMiAlimento(miAlimento)
-                _uiState.value = UiState.Success(miAlimento.copy(id = id))
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Error desconocido")
             }
