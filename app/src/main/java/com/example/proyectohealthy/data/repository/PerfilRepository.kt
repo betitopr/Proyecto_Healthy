@@ -1,8 +1,10 @@
 package com.example.proyectohealthy.data.repository
 
+import android.net.Uri
 import android.util.Log
 import com.example.proyectohealthy.data.local.entity.FavoritoInfo
 import com.example.proyectohealthy.data.local.entity.Perfil
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
@@ -12,16 +14,94 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ServerValue
+import com.google.firebase.storage.FirebaseStorage
+import java.net.HttpURLConnection
+import java.net.URL
 
 class PerfilRepository @Inject constructor(
-    private val database: FirebaseDatabase
+    private val database: FirebaseDatabase,
+    private val storage: FirebaseStorage,
+    private val auth: FirebaseAuth
 ) {
     private val perfilesRef = database.getReference("perfiles")
+    private val storageRef = storage.reference.child("profile_images")
 
     suspend fun createOrUpdatePerfil(perfil: Perfil) {
         perfilesRef.child(perfil.uid).setValue(perfil).await()
     }
 
+    suspend fun updateProfileImage(uid: String, imageUri: Uri?): String? {
+        return try {
+            // IMPORTANTE: Obtener el perfil actual primero
+            val currentProfile = getPerfil(uid)
+            val currentImageUrl = currentProfile?.perfilImagen
+
+            when {
+                // Si se está eliminando la imagen
+                imageUri == null -> {
+                    // Solo eliminar si no es una imagen de Google y existe
+                    if (currentImageUrl != null && !currentImageUrl.startsWith("https://lh3.googleusercontent.com")) {
+                        deleteCustomProfileImage(uid)
+                    }
+                    // Mantener la URL actual si es de Google, sino null
+                    val finalUrl = if (currentImageUrl?.startsWith("https://lh3.googleusercontent.com") == true) {
+                        currentImageUrl
+                    } else {
+                        null
+                    }
+                    updatePerfilImageUrl(uid, finalUrl)
+                    finalUrl
+                }
+                // Si se está subiendo una nueva imagen
+                else -> {
+                    // Solo eliminar imagen anterior si no es de Google
+                    if (currentImageUrl != null && !currentImageUrl.startsWith("https://lh3.googleusercontent.com")) {
+                        deleteCustomProfileImage(uid)
+                    }
+
+                    // Subir nueva imagen
+                    val imageRef = storageRef.child("$uid/profile.jpg")
+                    imageRef.putFile(imageUri).await()
+                    val downloadUrl = imageRef.downloadUrl.await().toString()
+                    updatePerfilImageUrl(uid, downloadUrl)
+                    downloadUrl
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PerfilRepository", "Error updating profile image", e)
+            throw e
+        }
+    }
+
+    private suspend fun updatePerfilImageUrl(uid: String, imageUrl: String?) {
+        try {
+            // Actualizar solo la URL de la imagen y el timestamp, manteniendo el resto de datos
+            val updates = mapOf<String, Any?>(
+                "perfilImagen" to imageUrl,
+                "ultimaActualizacion" to ServerValue.TIMESTAMP
+            )
+
+            perfilesRef.child(uid).updateChildren(updates).await()
+        } catch (e: Exception) {
+            Log.e("PerfilRepository", "Error updating profile image URL", e)
+            throw e
+        }
+    }
+
+    private suspend fun deleteCustomProfileImage(uid: String) {
+        try {
+            val imageRef = storageRef.child("$uid/profile.jpg")
+            imageRef.delete().await()
+        } catch (e: Exception) {
+            Log.d("PerfilRepository", "No previous image to delete or error deleting: ${e.message}")
+        }
+    }
+
+    suspend fun getDefaultProfileImage(uid: String): String? {
+        val user = auth.currentUser
+        return user?.photoUrl?.toString()
+    }
 
 
     suspend fun getPerfil(uid: String): Perfil? {
@@ -150,5 +230,16 @@ class PerfilRepository @Inject constructor(
         perfilesRef.child(uid).child("alimentosRecientes").child(alimentoId).setValue(true).await()
     }
 
+    suspend fun updatePerfilBasic(uid: String, updates: Map<String, Any?>) {
+        try {
+            // Agregar timestamp de última actualización
+            val updatesWithTimestamp = updates + mapOf(
+                "ultimaActualizacion" to ServerValue.TIMESTAMP
+            )
+            perfilesRef.child(uid).updateChildren(updatesWithTimestamp).await()
+        } catch (e: Exception) {
+            throw e
+        }
+    }
 
 }

@@ -6,19 +6,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.compose.ui.platform.LocalContext
 import com.example.proyectohealthy.R
+import com.example.proyectohealthy.data.local.entity.AuthType
 import com.example.proyectohealthy.data.local.entity.Perfil
 import com.example.proyectohealthy.data.repository.PerfilRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -31,6 +37,10 @@ class AuthViewModel @Inject constructor(
 ) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
     val authState = _authState.asStateFlow()
+
+    private val _passwordUpdateState = MutableStateFlow<PasswordUpdateState>(PasswordUpdateState.Initial)
+    val passwordUpdateState = _passwordUpdateState.asStateFlow()
+
     init {
         // Verifica el estado de autenticación al iniciar el ViewModel
         checkAuthState()
@@ -52,28 +62,26 @@ class AuthViewModel @Inject constructor(
             try {
                 _authState.value = AuthState.Loading
                 auth.signInWithEmailAndPassword(email, password).await()
-                createOrUpdateUserProfile()
+                createOrUpdateUserProfile(isGmailLogin = false)
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Authentication failed")
             }
         }
     }
-    // Método para registro/login con Google
+
+
     fun signInWithGoogle(account: GoogleSignInAccount) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
                 Log.d("AuthViewModel", "Iniciando autenticación con Google")
-                // Obtener el token ID de la cuenta de Google
                 val idToken = account.idToken
                 if (idToken != null) {
-                    // Crear credencial de Firebase con el token
                     val credential = GoogleAuthProvider.getCredential(idToken, null)
-                    // Autenticar con Firebase
                     auth.signInWithCredential(credential).await()
                     // Después de la autenticación exitosa, creamos o actualizamos el perfil
-                    createOrUpdateUserProfile()
+                    createOrUpdateUserProfile(isGmailLogin = true)
                     _authState.value = AuthState.Authenticated
                     Log.d("AuthViewModel", "Autenticación con Google exitosa")
                 } else {
@@ -86,18 +94,55 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-    // Método para registro tradicional con email/password
+
     fun signUp(email: String, password: String) {
         viewModelScope.launch {
             try {
                 _authState.value = AuthState.Loading
-                // Crear usuario en Firebase Auth
                 auth.createUserWithEmailAndPassword(email, password).await()
-                // Crear o actualizar perfil del usuario
-                createOrUpdateUserProfile()
+                createOrUpdateUserProfile(isGmailLogin = false)
                 _authState.value = AuthState.Authenticated
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Sign up failed")
+            }
+        }
+    }
+
+    fun updatePassword(currentPassword: String, newPassword: String) {
+        viewModelScope.launch {
+            try {
+                _passwordUpdateState.value = PasswordUpdateState.Loading
+
+                val user = auth.currentUser ?: throw Exception("No hay usuario autenticado")
+                val credential = EmailAuthProvider.getCredential(user.email!!, currentPassword)
+
+                // Paso 1: Reautenticar
+                try {
+                    user.reauthenticate(credential).await()
+                } catch (e: Exception) {
+                    _passwordUpdateState.value = PasswordUpdateState.Error("Contraseña actual incorrecta")
+                    return@launch
+                }
+
+                // Paso 2: Actualizar contraseña
+                try {
+                    user.updatePassword(newPassword).await()
+
+                    // Paso 3: Verificar que la actualización fue exitosa intentando autenticar con la nueva contraseña
+                    val newCredential = EmailAuthProvider.getCredential(user.email!!, newPassword)
+                    user.reauthenticate(newCredential).await()
+
+                    _passwordUpdateState.value = PasswordUpdateState.Success
+                } catch (e: Exception) {
+                    _passwordUpdateState.value = PasswordUpdateState.Error(
+                        "Error al actualizar contraseña: ${e.localizedMessage}"
+                    )
+                    return@launch
+                }
+            } catch (e: Exception) {
+                _passwordUpdateState.value = PasswordUpdateState.Error(
+                    "Error inesperado: ${e.localizedMessage}"
+                )
             }
         }
     }
@@ -136,50 +181,71 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-    // Método para crear o actualizar el perfil del usuario
-    private suspend fun createOrUpdateUserProfile() {
+
+    private suspend fun createOrUpdateUserProfile(isGmailLogin: Boolean = false) {
         val user = auth.currentUser ?: run {
             _authState.value = AuthState.Error("No authenticated user found")
             return
         }
         try {
+            // IMPORTANTE: Primero verificar si ya existe un perfil
             val existingPerfil = userRepository.getPerfil(user.uid)
-            val updatedPerfil = existingPerfil?.copy(
-                nombre = user.displayName?.split(" ")?.firstOrNull() ?: existingPerfil.nombre,
-                apellido = user.displayName?.split(" ")?.lastOrNull() ?: existingPerfil.apellido,
-                perfilImagen = user.photoUrl?.toString() ?: existingPerfil.perfilImagen
-            ) ?: Perfil(
-                uid = user.uid,
-                nombre = user.displayName?.split(" ")?.firstOrNull() ?: "",
-                apellido = user.displayName?.split(" ")?.lastOrNull() ?: "",
-                genero = "",
-                altura = 0f,
-                edad = 0,
-                pesoActual = 0f,
-                pesoObjetivo = 0f,
-                nivelActividad = "",
-                objetivo = "",
-                comoConseguirlo = "",
-                entrenamientoFuerza = "",
-                perfilImagen = user.photoUrl?.toString() ?: "",
-                biografia = ""
-            )
-            userRepository.createOrUpdatePerfil(updatedPerfil)
-            Log.d("AuthViewModel", "Perfil de usuario creado o actualizado exitosamente")
+
+            // Solo crear/actualizar si NO existe un perfil
+            if (existingPerfil == null) {
+                val randomNum = (1..1000).random()
+                val defaultUsername = "user$randomNum"
+                // Es un usuario nuevo, crear perfil inicial
+                val newPerfil = Perfil(
+                    uid = user.uid,
+                    nombre = user.displayName?.split(" ")?.firstOrNull() ?: "",
+                    apellido = user.displayName?.split(" ")?.lastOrNull() ?: "",
+                    username = defaultUsername,
+                    email = user.email ?: "",
+                    authType = if (isGmailLogin) AuthType.GMAIL else AuthType.APP,
+                    genero = "",
+                    altura = 0f,
+                    edad = 0,
+                    pesoActual = 0f,
+                    pesoObjetivo = 0f,
+                    nivelActividad = "",
+                    objetivo = "",
+                    perfilCompleto = false,
+                    comoConseguirlo = "",
+                    entrenamientoFuerza = "",
+                    perfilImagen = user.photoUrl?.toString(),
+                    biografia = ""
+                )
+                userRepository.createOrUpdatePerfil(newPerfil)
+                Log.d("AuthViewModel", "Nuevo perfil de usuario creado")
+            } else {
+                // El perfil ya existe, NO actualizamos nada
+                Log.d("AuthViewModel", "Perfil existente encontrado, omitiendo actualización")
+            }
+            _authState.value = AuthState.Authenticated
         } catch (e: Exception) {
-            Log.e("AuthViewModel", "Error al crear o actualizar el perfil de usuario", e)
+            Log.e("AuthViewModel", "Error al crear o verificar el perfil de usuario", e)
             _authState.value = AuthState.Error("Failed to create or update user profile: ${e.message}")
         }
     }
+
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
-//Los estados de autentificacion
+
     sealed class AuthState {
-        object Initial : AuthState()//Estado inicial
-        object Loading : AuthState()//Durante el proceso de autenticación
-        object Authenticated : AuthState()//Autenticación exitosa
-        object NotAuthenticated : AuthState()//No hay usuario autenticado
-        data class Error(val message: String) : AuthState()//Error durante la autenticación
+        object Initial : AuthState()
+        object Loading : AuthState()
+        object Authenticated : AuthState()
+        object NotAuthenticated : AuthState()
+        data class Error(val message: String) : AuthState()
     }
+
+    sealed class PasswordUpdateState {
+        object Initial : PasswordUpdateState()
+        object Loading : PasswordUpdateState()
+        object Success : PasswordUpdateState()
+        data class Error(val message: String) : PasswordUpdateState()
+    }
+
 }
 
 

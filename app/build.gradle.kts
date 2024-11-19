@@ -129,7 +129,6 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    //Autentificacion google
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
@@ -140,10 +139,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.hilt.common)
     implementation(libs.androidx.hilt.work)
-    testImplementation(libs.junit.junit)
-    testImplementation(libs.junit.junit)
-    testImplementation(libs.junit.junit)
-    testImplementation(libs.junit.junit)
+    implementation(libs.androidx.benchmark.common)
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
@@ -174,18 +170,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
-    // MockK
-    testImplementation("io.mockk:mockk:1.12.2")
-    //corutinas test
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-
-
-    // Kotlin Coroutines Play Services
-    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-
-    testImplementation ("androidx.arch.core:core-testing:2.2.0")
-
 
     //implementaciones necesarioss para mi zzz
     implementation("com.github.bumptech.glide:glide:4.12.0")

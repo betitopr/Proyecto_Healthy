@@ -60,6 +60,7 @@ import com.example.proyectohealthy.ui.viewmodel.MetasNutricionales
 import com.example.proyectohealthy.ui.viewmodel.ProgresoNutricional
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -394,9 +395,13 @@ class RefreshAction : ActionCallback {
     ) {
         withContext(Dispatchers.Default) {
             try {
+                val database = FirebaseDatabase.getInstance()
+                val storage = FirebaseStorage.getInstance()
+                val auth = FirebaseAuth.getInstance()
+
                 val widget = HealthyWidgetContent(
-                    registroDiarioRepository = RegistroDiarioRepository(FirebaseDatabase.getInstance()),
-                    perfilRepository = PerfilRepository(FirebaseDatabase.getInstance())
+                    registroDiarioRepository = RegistroDiarioRepository(database),
+                    perfilRepository = PerfilRepository(database, storage, auth)
                 )
                 widget.update(context, glanceId)
 

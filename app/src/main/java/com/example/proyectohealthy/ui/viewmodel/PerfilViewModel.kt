@@ -1,5 +1,6 @@
 package com.example.proyectohealthy.ui.viewmodel
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import perfetto.protos.UiState
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,6 +36,8 @@ class PerfilViewModel @Inject constructor(
     private val _isEditing = MutableStateFlow(false)
     val isEditing = _isEditing.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
 
 
     init {
@@ -77,6 +82,45 @@ class PerfilViewModel @Inject constructor(
     fun checkPerfilCompleto() {
         _currentPerfil.value?.let { perfil ->
             perfil.perfilCompleto = perfilTieneCamposCompletos(perfil)
+        }
+    }
+
+    fun updateProfileImage(imageUri: Uri?) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                val userId = auth.currentUser?.uid ?: throw Exception("Usuario no autenticado")
+
+                val newImageUrl = perfilRepository.updateProfileImage(userId, imageUri)
+
+                // Actualizar el perfil local
+                _currentPerfil.value = _currentPerfil.value?.copy(perfilImagen = newImageUrl)
+
+                _isLoading.value = false
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar la imagen: ${e.message}"
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun removeProfileImage() {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                val userId = auth.currentUser?.uid ?: throw Exception("Usuario no autenticado")
+
+                // Eliminar imagen actual y obtener URL por defecto (si existe)
+                val defaultImageUrl = perfilRepository.updateProfileImage(userId, null)
+
+                // Actualizar perfil local
+                _currentPerfil.value = _currentPerfil.value?.copy(perfilImagen = defaultImageUrl)
+
+                _isLoading.value = false
+            } catch (e: Exception) {
+                _error.value = "Error al eliminar la imagen: ${e.message}"
+                _isLoading.value = false
+            }
         }
     }
 
@@ -126,6 +170,8 @@ class PerfilViewModel @Inject constructor(
         _isEditing.value = isEditing
     }
 
+
+
     fun updateUnidadesPreferencias(
         sistemaPeso: String,
         sistemaAltura: String,
@@ -142,6 +188,8 @@ class PerfilViewModel @Inject constructor(
             perfilRepository.createOrUpdatePerfil(updatedPerfil)
         }
     }
+
+
 
     // Funciones de conversión de unidades
     fun convertirPeso(valor: Float, desde: String, hasta: String): Float {

@@ -53,8 +53,11 @@ object AppModule {
     // Repository providers
     @Provides
     @Singleton
-    fun providePerfilRepository(database: FirebaseDatabase): PerfilRepository =
-        PerfilRepository(database)
+    fun providePerfilRepository(
+        database: FirebaseDatabase,
+        storage: FirebaseStorage,
+        auth: FirebaseAuth
+    ): PerfilRepository = PerfilRepository(database, storage, auth)
 
     @Provides
     @Singleton

@@ -62,7 +62,7 @@ class ComidaNotificationWorker @AssistedInject constructor(
                 }
 
                 // Verificación de la noche (11 PM)
-                hour == 22 && registros.isEmpty() -> {
+                hour == 21 && registros.isEmpty() -> {
                     showNotification(
                         2,
                         "No has registrado comidas hoy",

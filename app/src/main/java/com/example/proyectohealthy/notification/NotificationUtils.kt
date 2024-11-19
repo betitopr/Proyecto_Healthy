@@ -43,7 +43,7 @@ fun setupNotificationAlarms(context: Context) {
 
     // Configurar hora para 11 PM
     val night = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 22)
+        set(Calendar.HOUR_OF_DAY, 21)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
         if (before(Calendar.getInstance())) {
