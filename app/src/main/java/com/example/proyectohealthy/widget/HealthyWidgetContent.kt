@@ -172,16 +172,6 @@ class HealthyWidgetContent @Inject constructor(
                                     fontWeight = FontWeight.Bold
                                 )
                             )
-
-                            Button(
-                                text = "↻",
-                                onClick = actionRunCallback<RefreshAction>(),
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = ColorProvider(Color.White),
-                                    contentColor = ColorProvider(Color(0xFF4CAF50))
-                                ),
-                                modifier = GlanceModifier.padding(start = 8.dp)
-                            )
                         }
                         // Usar los mismos datos que en ProgresoNutricionalComponent
                         val datosCompletos = metasNutricionales?.calorias ?: 0 > 0

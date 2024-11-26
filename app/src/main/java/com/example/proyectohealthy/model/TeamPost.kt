@@ -6,31 +6,27 @@ import com.google.firebase.database.ServerValue
 
 data class TeamPost(
     val id: String = "",
-    val authorId: String = "",
-    val authorName: String = "",
+    val autorId: String = "",
+    // Ya no necesitamos autorName porque lo obtendremos del Perfil
     val content: String = "",
     val imageUrl: String? = null,
+    val categoria: PostCategory = PostCategory.TIPS_NUTRICION,
     var likes: Map<String, Boolean> = emptyMap(),
     var comments: MutableMap<String, Comment> = mutableMapOf(),
-    //val timestamp: Any = ServerValue.TIMESTAMP
     val timestamp: Long = System.currentTimeMillis()
 ) {
+    // Propiedades calculadas
     val likeCount: Int
         get() = likes.count { it.value }
 
     val commentCount: Int
         get() = comments.size
 
-    //constructor sin argumentos
-    constructor() : this(
-        id = "",
-        authorId = "",
-        authorName = "",
-        content = "",
-        imageUrl = null,
-        likes = emptyMap(),
-        comments = mutableMapOf(),
-        //timestamp = ServerValue.TIMESTAMP
-        timestamp = System.currentTimeMillis(),
-    )
+    enum class PostCategory {
+        PROGRESO,
+        RECETAS,
+        TIPS_NUTRICION,
+        DUDAS_DIETA,
+        MOTIVACION
+    }
 }

@@ -8,7 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyectohealthy.composables.TeamPostItem
 import com.example.proyectohealthy.ui.viewmodel.TeamsViewModel
 import androidx.compose.ui.Alignment
 import android.net.Uri
@@ -21,147 +20,134 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.proyectohealthy.components.CustomBottomBar
+import com.example.proyectohealthy.components.CustomTopBar
+import com.example.proyectohealthy.components.TeamPostItem
+import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)//api experimental porque si, porque estoy cansado de
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamsScreen(
+    perfilViewModel: PerfilViewModel,
     viewModel: TeamsViewModel = hiltViewModel(),
     navController: NavController
 ) {
     val posts by viewModel.posts.collectAsState()
+    val currentPerfil by viewModel.currentPerfil.collectAsState()
     var showNewPostDialog by remember { mutableStateOf(false) }
-    var newPostContent by remember { mutableStateOf("") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val perfilState by perfilViewModel.currentPerfil.collectAsState()
 
+
+    Scaffold(
+        topBar = {
+            CustomTopBar(
+                navController = navController,
+                title = "Comunidad",
+                userPhotoUrl = perfilState?.perfilImagen
+            )
+        },
+        bottomBar = {
+            CustomBottomBar(navController = navController)
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showNewPostDialog = true }) {
+                Icon(Icons.Default.Add, "Nueva publicación")
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            items(posts) { post ->
+                TeamPostItem(
+                    post = post,
+                    currentPerfil = currentPerfil,
+                    navController = navController,
+                    perfilRepository = viewModel.perfilRepository,
+                    onLike = { viewModel.likePost(post.id) },
+                    onComment = { content -> viewModel.addComment(post.id, content) },
+                    onDelete = { viewModel.deletePost(post.id) },
+                    onUpdate = { newContent -> viewModel.updatePost(post.id, newContent) }
+                )
+            }
+        }
+
+        // Dialog para nuevo post
+        if (showNewPostDialog) {
+            NewPostDialog(
+                onDismiss = { showNewPostDialog = false },
+                onPost = { content, imageUri ->
+                    viewModel.createPost(content, imageUri)
+                    showNewPostDialog = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun NewPostDialog(
+    onDismiss: () -> Unit,
+    onPost: (String, Uri?) -> Unit
+) {
+    var content by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Teams", style = MaterialTheme.typography.headlineMedium) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Nueva publicación") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("Contenido") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showNewPostDialog = true },
-                containerColor = MaterialTheme.colorScheme.secondary,
-                contentColor = MaterialTheme.colorScheme.onSecondary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Nueva publicación")
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            Text(
-                text = "Bienvenido a Teams",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(16.dp)
-            )
 
-            if (posts.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Aún no hay publicaciones. ¡Sé el primero en compartir algo :D!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(posts) { post ->
-                        TeamPostItem(
-                            post = post,
-                            onLike = { viewModel.likePost(post.id) },
-                            onComment = { content -> viewModel.addComment(post.id, content) },
-                            onDelete = { viewModel.deletePost(post.id) },
-                            onUpdate = { newContent -> viewModel.updatePost(post.id, newContent) }
-                        )
-                    }
-                }
-            }
-        }
-    }
+                Spacer(modifier = Modifier.height(8.dp))
 
-    if (showNewPostDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showNewPostDialog = false
-                newPostContent = ""
-                selectedImageUri = null
-            },
-            title = { Text("Nueva publicación", style = MaterialTheme.typography.titleLarge) },
-            text = {
-                Column {
-                    TextField(
-                        value = newPostContent,
-                        onValueChange = { newPostContent = it },
-                        label = { Text("Contenido") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { launcher.launch("image/*") },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    ) {
-                        Text("Seleccionar imagen")
-                    }
-                    selectedImageUri?.let {
-                        Text("Imagen seleccionada", color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            },
-            confirmButton = {
                 Button(
-                    onClick = {
-                        viewModel.createPost(newPostContent, selectedImageUri)
-                        showNewPostDialog = false
-                        newPostContent = ""
-                        selectedImageUri = null
-                    },
-                    enabled = newPostContent.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    onClick = { launcher.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Publicar")
+                    Text(if (selectedImageUri != null) "Cambiar imagen" else "Añadir imagen")
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showNewPostDialog = false
-                    newPostContent = ""
-                    selectedImageUri = null
-                }) {
-                    Text("Cancelar")
+
+                selectedImageUri?.let {
+                    AsyncImage(
+                        model = it,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    )
                 }
             }
-        )
-    }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (content.isNotBlank()) {
+                        onPost(content, selectedImageUri)
+                    }
+                }
+            ) {
+                Text("Publicar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }

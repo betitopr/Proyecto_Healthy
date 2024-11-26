@@ -15,82 +15,44 @@ import com.google.firebase.firestore.Query
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.example.proyectohealthy.model.Comment
 import android.net.Uri
+import android.util.Log
+import androidx.navigation.NavController
+import com.example.proyectohealthy.data.local.entity.Perfil
+import com.example.proyectohealthy.data.repository.PerfilRepository
 import com.example.proyectohealthy.model.TeamPost
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
-
-/*data class TeamPost(
-    val id: String = UUID.randomUUID().toString(),
-    val authorId: String = "",
-    val authorName: String = "",
-    val content: String = "",
-    val imageUrl: String? = null,
-    val likes: Int = 0,
-    val dislikes: Int = 0,
-    val comments: List<Comment> = emptyList(),
-    val timestamp: Long = System.currentTimeMillis()
-){  //constructor
-    constructor() : this(
-        id = UUID.randomUUID().toString(),
-        authorId = "",
-        authorName = "",
-        content = "",
-        imageUrl = null,
-        likes = 0,
-        dislikes = 0,
-        comments = emptyList(),
-        timestamp = System.currentTimeMillis()
-    )
-}
-
-
-data class Comment(
-    val id: String = UUID.randomUUID().toString(),
-    val authorId: String = "",
-    val authorName: String = "",
-    val content: String = "",
-    val timestamp: Long = System.currentTimeMillis()
-){
-    //Constructor sin argumentos requerido por Firebase
-    constructor() : this(
-        id = UUID.randomUUID().toString(),
-        authorId = "",
-        authorName = "",
-        content = "",
-        timestamp = System.currentTimeMillis()
-    )
-}//nota de eliminar esto para arriba de ser necesario
-
-class TeamsViewModel : ViewModel() {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-
-    private val _posts = MutableStateFlow<List<TeamPost>>(emptyList())
-    val posts: StateFlow<List<TeamPost>> = _posts
-
-    private val _currentUser = MutableStateFlow<User?>(null)
-    val currentUser: StateFlow<User?> = _currentUser
-
-    init {
-        loadPosts()
-        loadCurrentUser()
-    }*/
+import kotlinx.coroutines.flow.asStateFlow
 
 @HiltViewModel
 class TeamsViewModel @Inject constructor(
     private val database: FirebaseDatabase,
     private val storage: FirebaseStorage,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    val perfilRepository: PerfilRepository
 ) : ViewModel() {
 
     private val _posts = MutableStateFlow<List<TeamPost>>(emptyList())
     val posts: StateFlow<List<TeamPost>> = _posts
 
+    private val _currentPerfil = MutableStateFlow<Perfil?>(null)
+    val currentPerfil = _currentPerfil.asStateFlow()
+
     init {
+        loadCurrentPerfil()
         loadPosts()
+    }
+
+    private fun loadCurrentPerfil() {
+        viewModelScope.launch {
+            auth.currentUser?.uid?.let { uid ->
+                perfilRepository.getPerfilFlow(uid).collect { perfil ->
+                    _currentPerfil.value = perfil
+                }
+            }
+        }
     }
 
     private fun loadPosts() {
@@ -130,21 +92,22 @@ class TeamsViewModel @Inject constructor(
     fun createPost(content: String, imageUri: Uri?) {
         viewModelScope.launch {
             try {
-                val currentUser = auth.currentUser
-                if (currentUser != null) {
-                    val imageUrl = imageUri?.let { uploadImage(it) }
-                    val post = TeamPost(
-                        id = UUID.randomUUID().toString(),
-                        authorId = currentUser.uid,
-                        authorName = currentUser.displayName ?: "",
-                        content = content,
-                        imageUrl = imageUrl,
-                        likes = emptyMap()
-                    )
-                    database.getReference("team_posts").child(post.id).setValue(post).await()
-                }
+                val currentPerfil = _currentPerfil.value ?: return@launch
+
+                val imageUrl = imageUri?.let { uploadImage(it) }
+                val post = TeamPost(
+                    id = UUID.randomUUID().toString(),
+                    autorId = currentPerfil.uid,
+                    content = content,
+                    imageUrl = imageUrl,
+                    likes = emptyMap()
+                )
+                database.getReference("team_posts")
+                    .child(post.id)
+                    .setValue(post)
+                    .await()
             } catch (e: Exception) {
-                //error
+                Log.e("TeamsViewModel", "Error creating post", e)
             }
         }
     }
@@ -190,28 +153,26 @@ class TeamsViewModel @Inject constructor(
 
     fun addComment(postId: String, content: String) {
         viewModelScope.launch {
-            val currentUser = auth.currentUser
-            if (currentUser != null) {
+            try {
+                val currentPerfil = _currentPerfil.value ?: return@launch
                 val commentId = UUID.randomUUID().toString()
+
                 val comment = Comment(
                     id = commentId,
                     postId = postId,
-                    authorId = currentUser.uid,
-                    authorName = currentUser.displayName ?: "",
-                    content = content
+                    autorId = currentPerfil.uid,  // Usamos el ID del perfil actual
+                    content = content,
+                    timestamp = System.currentTimeMillis()
                 )
-                val commentsRef = database.getReference("team_posts").child(postId).child("comments").child(commentId)
-                commentsRef.setValue(comment).await()
 
-                //actualizar los post
-                _posts.value = _posts.value.map { post ->
-                    if (post.id == postId) {
-                        post.comments[commentId] = comment
-                        post
-                    } else {
-                        post
-                    }
-                }
+                database.getReference("team_posts")
+                    .child(postId)
+                    .child("comments")
+                    .child(commentId)
+                    .setValue(comment)
+                    .await()
+            } catch (e: Exception) {
+                Log.e("TeamsViewModel", "Error adding comment", e)
             }
         }
     }
@@ -224,6 +185,16 @@ class TeamsViewModel @Inject constructor(
                 //otro error
             }
         }
+    }
+
+    // Nuevo método para obtener perfil por ID
+    private suspend fun getPerfilById(perfilId: String): Perfil? {
+        return perfilRepository.getPerfil(perfilId)
+    }
+
+    // Nuevo método para navegar al perfil
+    fun navigateToProfile(navController: NavController, perfilId: String) {
+        navController.navigate("profile/$perfilId")
     }
 
     fun updatePost(postId: String, newContent: String) {
