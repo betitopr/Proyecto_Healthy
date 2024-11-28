@@ -6,6 +6,7 @@ import java.util.Date
 
 fun RecetaGuardada.toMiAlimento(): MisAlimentos {
     return MisAlimentos(
+        id = "",
         idPerfil = this.idPerfil,
         nombre = this.nombre,
         marca = "Receta propia",

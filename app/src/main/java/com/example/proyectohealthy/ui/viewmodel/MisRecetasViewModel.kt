@@ -9,9 +9,11 @@ import com.example.proyectohealthy.data.repository.MisAlimentosRepository
 import com.example.proyectohealthy.util.toMiAlimento
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,7 +34,7 @@ class MisRecetasViewModel @Inject constructor(
         cargarRecetas()
     }
 
-    private fun cargarRecetas() {
+    fun cargarRecetas() {
         viewModelScope.launch {
             try {
                 val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
@@ -72,10 +74,25 @@ class MisRecetasViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = MisRecetasUiState.Loading
+
+                // Primero verificar si ya existe
+                val misAlimentos = misAlimentosRepository.getMisAlimentosFlow(receta.idPerfil)
+                    .first() // Obtener la lista actual
+                    .filter { it.nombre == receta.nombre } // Buscar coincidencias
+
+                if (misAlimentos.isNotEmpty()) {
+                    _uiState.value = MisRecetasUiState.Error("Esta receta ya está en Mis Alimentos")
+                    return@launch
+                }
+
+                // Si no existe, proceder a crear
                 val alimento = receta.toMiAlimento()
                 misAlimentosRepository.createOrUpdateMiAlimento(alimento)
                 _uiState.value = MisRecetasUiState.AlimentoAgregado
-                cargarRecetas() // Recargar las recetas después de agregar
+
+                // Recargar después de un breve delay
+                delay(500)
+                cargarRecetas()
             } catch (e: Exception) {
                 _error.value = "Error al agregar a mis alimentos: ${e.message}"
                 _uiState.value = MisRecetasUiState.Error(e.message ?: "Error desconocido")
@@ -102,6 +119,7 @@ class MisRecetasViewModel @Inject constructor(
     }
 
     sealed class MisRecetasUiState {
+        object Initial : MisRecetasUiState()
         object Loading : MisRecetasUiState()
         object Empty : MisRecetasUiState()
         object AlimentoAgregado : MisRecetasUiState()

@@ -21,6 +21,8 @@ fun RecetaDetalleDialog(
     isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    var isButtonEnabled by remember { mutableStateOf(true) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -71,8 +73,13 @@ fun RecetaDetalleDialog(
         },
         confirmButton = {
             Button(
-                onClick = onAgregarAMisAlimentos,
-                enabled = !isLoading
+                onClick = {
+                    if (isButtonEnabled) {
+                        isButtonEnabled = false  // Deshabilitar el botón
+                        onAgregarAMisAlimentos()
+                    }
+                },
+                enabled = isButtonEnabled && !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -80,7 +87,7 @@ fun RecetaDetalleDialog(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Icon(Icons.Default.LocalDining, null)
+                    Icon(Icons.Default.LocalDining, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Agregar a Mis Alimentos")
                 }
@@ -92,6 +99,13 @@ fun RecetaDetalleDialog(
             }
         }
     )
+
+    // Cerrar el diálogo automáticamente cuando se agrega exitosamente
+    LaunchedEffect(isLoading) {
+        if (!isLoading && !isButtonEnabled) {
+            onDismiss()
+        }
+    }
 }
 
 @Composable

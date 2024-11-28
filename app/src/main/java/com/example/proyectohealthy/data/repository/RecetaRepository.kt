@@ -77,13 +77,13 @@ class RecetaRepository @Inject constructor(
                 
                 Instrucciones:
                 ${receta.instructions}
-                
+                DAME VALORES FIJOS, NO QUIOER RANGOS, EN DONDE TE PIDEN NUMEROS DAME UN NUMERO NO QUIOER RANGOS NI ALGO COMO ESO 350/400.... MEJOR DAME 375.
                 Por favor, proporciona:
                 1. Título en español:
                 2. Ingredientes traducidos (uno por línea):
                 3. Instrucciones en español:
-                4. Peso aproximado por plato estandar o tazon(depedera si es sopa,segundo,postre) en gramos:
-                5. Valores nutricionales por plato o tipo de plato o envase aproximado(lo mas realista posible):
+                4. Peso aproximado por plato estandar o tazon(depedera si es sopa,segundo,postre) en gramos(no des 2 valores, solo un valor o un valor promedio pero no me des 2 valores):
+                5. Valores nutricionales por plato o tipo de plato o envase aproximado(lo mas realista posible)(no des 2 valores, solo un valor o un valor promedio pero no me des 2 valores de ninguno):
                    - Calorías:
                    - Proteínas (g):
                    - Carbohidratos (g):
