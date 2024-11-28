@@ -13,13 +13,11 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun GeneradorIASection(
-    onGenerar: (String, String, String) -> Unit,
+    onGenerar: (String) -> Unit,
     isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
     var descripcion by remember { mutableStateOf("") }
-    var tipoComida by remember { mutableStateOf("") }
-    var restricciones by remember { mutableStateOf("") }
     var showLimitDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -45,39 +43,21 @@ fun GeneradorIASection(
                 value = descripcion,
                 onValueChange = { descripcion = it },
                 label = { Text("Describe la receta que deseas") },
-                placeholder = { Text("Ej: Una ensalada fresca con pollo") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = tipoComida,
-                onValueChange = { tipoComida = it },
-                label = { Text("Tipo de comida") },
-                placeholder = { Text("Ej: Almuerzo, Cena, Desayuno") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedTextField(
-                value = restricciones,
-                onValueChange = { restricciones = it },
-                label = { Text("Restricciones o preferencias (opcional)") },
-                placeholder = { Text("Ej: Sin gluten, vegetariano") },
-                modifier = Modifier.fillMaxWidth()
+                placeholder = { Text("Ej: Un chaufa vegetariano con quinua\nO simplemente: Lasagna") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 5
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
-                    onGenerar(descripcion, tipoComida, restricciones)
+                    onGenerar(descripcion)
                     showLimitDialog = true
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && descripcion.isNotBlank() && tipoComida.isNotBlank()
+                enabled = !isLoading && descripcion.isNotBlank()
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(

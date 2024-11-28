@@ -11,7 +11,7 @@ fun RecetaGuardada.toMiAlimento(): MisAlimentos {
         nombre = this.nombre,
         marca = "Receta propia",
         categoria = "Recetas",
-        nombrePorcion = this.porciones,
+        nombrePorcion = "plato",
         pesoPorcion = this.valoresNutricionales.porcion,
         unidadPorcion = this.valoresNutricionales.unidadPorcion,
         calorias = this.valoresNutricionales.calorias,

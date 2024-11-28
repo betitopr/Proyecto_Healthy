@@ -54,47 +54,45 @@ class ExplorarRecetasViewModel @Inject constructor(
         }
     }
 
-    fun guardarReceta(recetaApi: RecetaApi) {
+    fun guardarReceta(receta: RecetaApi) {
         viewModelScope.launch {
             try {
                 _uiState.value = ExplorarRecetasUiState.Loading
                 val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
 
-                val recetaProcesada = recetaRepository.procesarRecetaConIA(recetaApi)
-                    ?: throw IllegalStateException("Error al procesar receta")
+                // Primero procesamos con IA para traducir y obtener valores nutricionales
+                val recetaProcesada = recetaRepository.procesarRecetaConIA(receta)
+                    ?: throw IllegalStateException("Error al procesar la receta")
 
+                // Luego guardamos la receta procesada
                 val recetaCompleta = recetaProcesada.copy(idPerfil = userId)
                 recetaRepository.createOrUpdateReceta(recetaCompleta)
 
                 _uiState.value = ExplorarRecetasUiState.RecetaGuardada(recetaCompleta)
             } catch (e: Exception) {
-                _error.value = "Error al guardar receta: ${e.message}"
-                _uiState.value = ExplorarRecetasUiState.Error(e.message ?: "Error desconocido")
+                _uiState.value = ExplorarRecetasUiState.Error("Error al guardar receta: ${e.message}")
             }
         }
     }
 
     // Solo se ejecuta al presionar generar
-    fun generarReceta(descripcion: String, tipo: String, restricciones: String) {
+    fun generarReceta(descripcion: String, tipoComida: String, restricciones: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = ExplorarRecetasUiState.Loading
                 val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
 
-                // Generar receta con IA
-                val recetaGenerada = recetaRepository.generarRecetaConIA(descripcion, tipo, restricciones)
-                    ?: throw IllegalStateException("Error al generar receta")
+                // Generar la receta con IA
+                val recetaGenerada = recetaRepository.generarRecetaConIA(descripcion, tipoComida, restricciones)
+                    ?: throw IllegalStateException("No se pudo generar la receta")
 
-                // Guardar receta generada
+                // Guardar la receta generada
                 val recetaCompleta = recetaGenerada.copy(idPerfil = userId)
                 recetaRepository.createOrUpdateReceta(recetaCompleta)
 
-                // La receta generada se guarda automáticamente en Mis Recetas
                 _uiState.value = ExplorarRecetasUiState.RecetaGuardada(recetaCompleta)
-
             } catch (e: Exception) {
-                _error.value = "Error al generar receta: ${e.message}"
-                _uiState.value = ExplorarRecetasUiState.Error(e.message ?: "Error al generar receta")
+                _uiState.value = ExplorarRecetasUiState.Error("Error al generar receta: ${e.message}")
             }
         }
     }

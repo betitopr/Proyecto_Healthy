@@ -67,7 +67,7 @@ class RecetaRepository @Inject constructor(
     suspend fun procesarRecetaConIA(receta: RecetaApi): RecetaGuardada? {
         try {
             val prompt = """
-                Corrige como debe ser la receta(ligeramente esta mal escrita pero suficiente para que la corrijas) y traduce al español la siguiente receta y proporciona valores nutricionales aproximados.
+                Corrige como debe ser la receta y TRADUCELA del ingles al ESPAÑOL (ligeramente esta mal escrita pero suficiente para que la corrijas) y traduce al español la siguiente receta y proporciona valores nutricionales aproximados.
                 
                 Título original: ${receta.title}
                 Porciones: ${receta.servings}
@@ -78,7 +78,7 @@ class RecetaRepository @Inject constructor(
                 Instrucciones:
                 ${receta.instructions}
                 DAME VALORES FIJOS, NO QUIOER RANGOS, EN DONDE TE PIDEN NUMEROS DAME UN NUMERO NO QUIOER RANGOS NI ALGO COMO ESO 350/400.... MEJOR DAME 375.
-                Por favor, proporciona:
+                Por favor, proporciona en el formato:
                 1. Título en español:
                 2. Ingredientes traducidos (uno por línea):
                 3. Instrucciones en español:
@@ -95,8 +95,9 @@ class RecetaRepository @Inject constructor(
             val response = generativeModel.generateContent(prompt)
             val respuesta = response.text?.trim() ?: throw Exception("Respuesta vacía de IA")
 
-            // Procesar respuesta línea por línea
-            val lineas = respuesta.lines()
+            Log.d("RecetaRepository", "Respuesta de IA: $respuesta")
+
+            // Variables para almacenar los datos
             var nombre = ""
             val ingredientes = mutableListOf<String>()
             var instrucciones = ""
@@ -108,53 +109,94 @@ class RecetaRepository @Inject constructor(
             var fibra = 0f
             var azucares = 0f
 
+            // Parsear la respuesta línea por línea
+            val lineas = respuesta.lines()
             var seccionActual = ""
+
             for (linea in lineas) {
+                val lineaTrimmed = linea.trim()
                 when {
-                    linea.startsWith("1. Título en español:") -> {
-                        nombre = linea.substringAfter(":").trim()
+                    lineaTrimmed.startsWith("1.") && lineaTrimmed.contains("español:") -> {
+                        nombre = lineaTrimmed.substringAfter(":").trim()
+                        seccionActual = "nombre"
                     }
-                    linea.startsWith("2. Ingredientes traducidos") -> {
+                    lineaTrimmed.startsWith("2.") && lineaTrimmed.contains("Ingredientes") -> {
                         seccionActual = "ingredientes"
                     }
-                    linea.startsWith("3. Instrucciones en español:") -> {
+                    lineaTrimmed.startsWith("3.") && lineaTrimmed.contains("Instrucciones") -> {
                         seccionActual = "instrucciones"
-                        instrucciones = linea.substringAfter(":").trim()
+                        instrucciones = lineaTrimmed.substringAfter(":").trim()
                     }
-                    linea.startsWith("4. Peso aproximado") -> {
-                        porcion = linea.substringAfter(":").trim().replace("[^0-9]".toRegex(), "").toFloatOrNull() ?: 100f
+                    lineaTrimmed.startsWith("4.") && lineaTrimmed.contains("Peso") -> {
+                        val match = "\\d+".toRegex().find(lineaTrimmed)
+                        porcion = match?.value?.toFloatOrNull() ?: 100f
+                        seccionActual = "peso"
                     }
-                    linea.contains("Calorías:") -> {
-                        calorias = linea.substringAfter(":").trim().replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0
+                    lineaTrimmed.contains("Calorías:") -> {
+                        val match = "\\d+".toRegex().find(lineaTrimmed)
+                        calorias = match?.value?.toIntOrNull() ?: 0
                     }
-                    linea.contains("Proteínas") -> {
-                        proteinas = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    lineaTrimmed.contains("Proteínas") -> {
+                        val match = "\\d+(\\.\\d+)?".toRegex().find(lineaTrimmed)
+                        proteinas = match?.value?.toFloatOrNull() ?: 0f
                     }
-                    linea.contains("Carbohidratos") -> {
-                        carbohidratos = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    lineaTrimmed.contains("Carbohidratos") -> {
+                        val match = "\\d+(\\.\\d+)?".toRegex().find(lineaTrimmed)
+                        carbohidratos = match?.value?.toFloatOrNull() ?: 0f
                     }
-                    linea.contains("Grasas") -> {
-                        grasas = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    lineaTrimmed.contains("Grasas") -> {
+                        val match = "\\d+(\\.\\d+)?".toRegex().find(lineaTrimmed)
+                        grasas = match?.value?.toFloatOrNull() ?: 0f
                     }
-                    linea.contains("Fibra") -> {
-                        fibra = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    lineaTrimmed.contains("Fibra") -> {
+                        val match = "\\d+(\\.\\d+)?".toRegex().find(lineaTrimmed)
+                        fibra = match?.value?.toFloatOrNull() ?: 0f
                     }
-                    linea.contains("Azúcares") -> {
-                        azucares = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    lineaTrimmed.contains("Azúcares") -> {
+                        val match = "\\d+(\\.\\d+)?".toRegex().find(lineaTrimmed)
+                        azucares = match?.value?.toFloatOrNull() ?: 0f
                     }
                     else -> {
                         when (seccionActual) {
-                            "ingredientes" -> if (linea.isNotBlank() && !linea.startsWith("3.")) ingredientes.add(linea.trim())
-                            "instrucciones" -> if (linea.isNotBlank() && !linea.startsWith("4.")) instrucciones += "\n" + linea.trim()
+                            "ingredientes" -> {
+                                if (lineaTrimmed.startsWith("-") || lineaTrimmed.startsWith("*")) {
+                                    ingredientes.add(lineaTrimmed.substringAfter("-").substringAfter("*").trim())
+                                }
+                            }
+                            "instrucciones" -> {
+                                if (lineaTrimmed.isNotBlank() && !lineaTrimmed.startsWith("4.")) {
+                                    instrucciones += "\n$lineaTrimmed"
+                                }
+                            }
                         }
                     }
                 }
             }
 
+            Log.d("RecetaRepository", "Nombre traducido: $nombre")
+            Log.d("RecetaRepository", "Ingredientes traducidos: ${ingredientes.joinToString(", ")}")
+            Log.d("RecetaRepository", "Instrucciones traducidas: $instrucciones")
+
+            // Verificar que tenemos los datos mínimos necesarios
+            if (nombre.isBlank()) {
+                Log.e("RecetaRepository", "Nombre está vacío")
+                throw Exception("Nombre de receta vacío")
+            }
+
+            if (ingredientes.isEmpty()) {
+                Log.e("RecetaRepository", "No hay ingredientes")
+                throw Exception("Lista de ingredientes vacía")
+            }
+
+            if (instrucciones.isBlank()) {
+                Log.e("RecetaRepository", "Instrucciones están vacías")
+                throw Exception("Instrucciones vacías")
+            }
+
             return RecetaGuardada(
-                nombre = nombre.ifEmpty { receta.title },
-                ingredientes = ingredientes.ifEmpty { receta.ingredients },
-                instrucciones = instrucciones.ifEmpty { receta.instructions },
+                nombre = nombre,
+                ingredientes = ingredientes,
+                instrucciones = instrucciones,
                 porciones = receta.servings,
                 tiempoPreparacion = "No especificado",
                 valoresNutricionales = ValoresNutricionales(
@@ -175,6 +217,7 @@ class RecetaRepository @Inject constructor(
             return null
         }
     }
+
 
     suspend fun createOrUpdateReceta(receta: RecetaGuardada): String {
         return try {
