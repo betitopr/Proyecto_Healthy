@@ -52,20 +52,13 @@ class RecetaRepository @Inject constructor(
         return try {
             val response = api.buscarRecetas(query)
             if (response.isSuccessful) {
-                response.body()?.map { recetaResponse ->
-                    RecetaApi(
-                        title = recetaResponse.title,
-                        ingredients = recetaResponse.ingredients.split("|"),
-                        servings = recetaResponse.servings,
-                        instructions = recetaResponse.instructions
-                    )
-                } ?: emptyList()
+                response.body()?.map { it.toRecetaApi() } ?: emptyList()
             } else {
-                Log.e("RecetaRepository", "Error ${response.code()}: ${response.message()}")
+                Log.e("RecetaRepository", "Error API ${response.code()}: ${response.message()}")
                 emptyList()
             }
         } catch (e: Exception) {
-            Log.e("RecetaRepository", "Error API", e)
+            Log.e("RecetaRepository", "Error buscando recetas: ${e.message}")
             emptyList()
         }
     }
@@ -74,90 +67,115 @@ class RecetaRepository @Inject constructor(
     suspend fun procesarRecetaConIA(receta: RecetaApi): RecetaGuardada? {
         try {
             val prompt = """
-                Traduce la siguiente receta del inglés al español y calcula sus valores nutricionales aproximados por porción.
-                Receta:
+                Corrige como debe ser la receta(ligeramente esta mal escrita pero suficiente para que la corrijas) y traduce al español la siguiente receta y proporciona valores nutricionales aproximados.
                 
-                Título: ${receta.title}
+                Título original: ${receta.title}
                 Porciones: ${receta.servings}
+                
                 Ingredientes:
                 ${receta.ingredients.joinToString("\n")}
                 
                 Instrucciones:
                 ${receta.instructions}
                 
-                Proporciona la respuesta en formato JSON con esta estructura exacta:
-                {
-                    "nombre": "nombre traducido",
-                    "ingredientes": ["ingrediente1", "ingrediente2"],
-                    "instrucciones": "instrucciones traducidas",
-                    "porciones": "número de porciones",
-                    "tiempoPreparacion": "tiempo estimado",
-                    "valoresNutricionales": {
-                        "porcion": 100,
-                        "unidadPorcion": "g",
-                        "calorias": 0,
-                        "proteinas": 0,
-                        "carbohidratos": 0,
-                        "grasas": 0,
-                        "fibra": 0,
-                        "azucares": 0
-                    }
-                }
+                Por favor, proporciona:
+                1. Título en español:
+                2. Ingredientes traducidos (uno por línea):
+                3. Instrucciones en español:
+                4. Peso aproximado por plato estandar o tazon(depedera si es sopa,segundo,postre) en gramos:
+                5. Valores nutricionales por plato o tipo de plato o envase aproximado(lo mas realista posible):
+                   - Calorías:
+                   - Proteínas (g):
+                   - Carbohidratos (g):
+                   - Grasas (g):
+                   - Fibra (g):
+                   - Azúcares (g):
             """.trimIndent()
 
             val response = generativeModel.generateContent(prompt)
-            val jsonResponse = response.text?.trim() ?: throw Exception("Respuesta vacía de IA")
+            val respuesta = response.text?.trim() ?: throw Exception("Respuesta vacía de IA")
 
-            // TODO: Implementar parseador de JSON a RecetaGuardada
-            return null // Placeholder
+            // Procesar respuesta línea por línea
+            val lineas = respuesta.lines()
+            var nombre = ""
+            val ingredientes = mutableListOf<String>()
+            var instrucciones = ""
+            var porcion = 0f
+            var calorias = 0
+            var proteinas = 0f
+            var carbohidratos = 0f
+            var grasas = 0f
+            var fibra = 0f
+            var azucares = 0f
+
+            var seccionActual = ""
+            for (linea in lineas) {
+                when {
+                    linea.startsWith("1. Título en español:") -> {
+                        nombre = linea.substringAfter(":").trim()
+                    }
+                    linea.startsWith("2. Ingredientes traducidos") -> {
+                        seccionActual = "ingredientes"
+                    }
+                    linea.startsWith("3. Instrucciones en español:") -> {
+                        seccionActual = "instrucciones"
+                        instrucciones = linea.substringAfter(":").trim()
+                    }
+                    linea.startsWith("4. Peso aproximado") -> {
+                        porcion = linea.substringAfter(":").trim().replace("[^0-9]".toRegex(), "").toFloatOrNull() ?: 100f
+                    }
+                    linea.contains("Calorías:") -> {
+                        calorias = linea.substringAfter(":").trim().replace("[^0-9]".toRegex(), "").toIntOrNull() ?: 0
+                    }
+                    linea.contains("Proteínas") -> {
+                        proteinas = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    }
+                    linea.contains("Carbohidratos") -> {
+                        carbohidratos = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    }
+                    linea.contains("Grasas") -> {
+                        grasas = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    }
+                    linea.contains("Fibra") -> {
+                        fibra = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    }
+                    linea.contains("Azúcares") -> {
+                        azucares = linea.substringAfter(":").trim().replace("[^0-9.]".toRegex(), "").toFloatOrNull() ?: 0f
+                    }
+                    else -> {
+                        when (seccionActual) {
+                            "ingredientes" -> if (linea.isNotBlank() && !linea.startsWith("3.")) ingredientes.add(linea.trim())
+                            "instrucciones" -> if (linea.isNotBlank() && !linea.startsWith("4.")) instrucciones += "\n" + linea.trim()
+                        }
+                    }
+                }
+            }
+
+            return RecetaGuardada(
+                nombre = nombre.ifEmpty { receta.title },
+                ingredientes = ingredientes.ifEmpty { receta.ingredients },
+                instrucciones = instrucciones.ifEmpty { receta.instructions },
+                porciones = receta.servings,
+                tiempoPreparacion = "No especificado",
+                valoresNutricionales = ValoresNutricionales(
+                    porcion = porcion,
+                    unidadPorcion = "g",
+                    calorias = calorias,
+                    proteinas = proteinas,
+                    carbohidratos = carbohidratos,
+                    grasas = grasas,
+                    fibra = fibra,
+                    azucares = azucares
+                ),
+                origen = OrigenReceta.API,
+                fechaCreacion = Date()
+            )
         } catch (e: Exception) {
             Log.e("RecetaRepository", "Error procesando receta con IA: ${e.message}")
             return null
         }
     }
 
-    // Generar nueva receta con IA
-    suspend fun generarRecetaConIA(descripcion: String, tipoComida: String, restricciones: String): RecetaGuardada? {
-        try {
-            val prompt = """
-                Genera una receta detallada basada en los siguientes parámetros:
-                
-                Descripción: $descripcion
-                Tipo de comida: $tipoComida
-                Restricciones: $restricciones
-                
-                Proporciona la receta en formato JSON con esta estructura exacta:
-                {
-                    "nombre": "",
-                    "ingredientes": [""],
-                    "instrucciones": "",
-                    "porciones": "",
-                    "tiempoPreparacion": "",
-                    "valoresNutricionales": {
-                        "porcion": 100,
-                        "unidadPorcion": "g",
-                        "calorias": 0,
-                        "proteinas": 0,
-                        "carbohidratos": 0,
-                        "grasas": 0,
-                        "fibra": 0,
-                        "azucares": 0
-                    }
-                }
-            """.trimIndent()
-
-            val response = generativeModel.generateContent(prompt)
-            val jsonResponse = response.text?.trim() ?: throw Exception("Respuesta vacía de IA")
-
-            // TODO: Implementar parseador de JSON a RecetaGuardada
-            return null // Placeholder
-        } catch (e: Exception) {
-            Log.e("RecetaRepository", "Error generando receta con IA: ${e.message}")
-            return null
-        }
-    }
-
-    // Guardar nueva receta
     suspend fun createOrUpdateReceta(receta: RecetaGuardada): String {
         return try {
             val key = if (receta.id.isBlank()) {
@@ -175,6 +193,160 @@ class RecetaRepository @Inject constructor(
             throw e
         }
     }
+
+    // Generar nueva receta con IA
+    suspend fun generarRecetaConIA(descripcion: String, tipoComida: String, restricciones: String): RecetaGuardada? {
+        try {
+            val prompt = """
+            Por favor, genera una receta de cocina completa basada en:
+            
+            DESCRIPCIÓN: $descripcion
+            TIPO DE COMIDA: $tipoComida
+            RESTRICCIONES: $restricciones
+            
+            Proporciona la receta en el siguiente formato:
+            
+            1. NOMBRE DE LA RECETA:
+            2. PORCIONES:
+            3. TIEMPO DE PREPARACIÓN:
+            4. INGREDIENTES (cantidad por ingrediente):
+            5. INSTRUCCIONES (paso a paso):
+            6. VALORES NUTRICIONALES POR PORCIÓN:
+               - Peso por porción (g):
+               - Calorías:
+               - Proteínas (g):
+               - Carbohidratos (g):
+               - Grasas (g):
+               - Fibra (g):
+               - Azúcares (g):
+            
+            IMPORTANTE:
+            - Da cantidades específicas para cada ingrediente
+            - Instrucciones detalladas paso a paso
+            - Valores nutricionales realistas y aproximados
+            - Todo en español
+        """.trimIndent()
+
+            val response = generativeModel.generateContent(prompt)
+            val respuesta = response.text?.trim() ?: throw Exception("Respuesta vacía de IA")
+
+            // Procesar respuesta línea por línea
+            val lineas = respuesta.lines()
+            var nombre = ""
+            var porciones = ""
+            var tiempoPreparacion = ""
+            val ingredientes = mutableListOf<String>()
+            var instrucciones = ""
+            var porcion = 0f
+            var calorias = 0
+            var proteinas = 0f
+            var carbohidratos = 0f
+            var grasas = 0f
+            var fibra = 0f
+            var azucares = 0f
+
+            var seccionActual = ""
+            for (linea in lineas) {
+                when {
+                    linea.startsWith("1. NOMBRE DE LA RECETA:") -> {
+                        nombre = linea.substringAfter(":").trim()
+                    }
+                    linea.startsWith("2. PORCIONES:") -> {
+                        porciones = linea.substringAfter(":").trim()
+                    }
+                    linea.startsWith("3. TIEMPO DE PREPARACIÓN:") -> {
+                        tiempoPreparacion = linea.substringAfter(":").trim()
+                    }
+                    linea.startsWith("4. INGREDIENTES") -> {
+                        seccionActual = "ingredientes"
+                    }
+                    linea.startsWith("5. INSTRUCCIONES") -> {
+                        seccionActual = "instrucciones"
+                    }
+                    linea.startsWith("6. VALORES NUTRICIONALES") -> {
+                        seccionActual = "nutricional"
+                    }
+                    else -> {
+                        when (seccionActual) {
+                            "ingredientes" -> {
+                                if (linea.isNotBlank() && !linea.startsWith("5.")) {
+                                    ingredientes.add(linea.trim())
+                                }
+                            }
+                            "instrucciones" -> {
+                                if (linea.isNotBlank() && !linea.startsWith("6.")) {
+                                    instrucciones += if (instrucciones.isEmpty()) linea.trim() else "\n${linea.trim()}"
+                                }
+                            }
+                            "nutricional" -> {
+                                when {
+                                    linea.contains("Peso por porción") -> {
+                                        porcion = linea.substringAfter(":").trim()
+                                            .replace("[^0-9.]".toRegex(), "")
+                                            .toFloatOrNull() ?: 100f
+                                    }
+                                    linea.contains("Calorías") -> {
+                                        calorias = linea.substringAfter(":").trim()
+                                            .replace("[^0-9]".toRegex(), "")
+                                            .toIntOrNull() ?: 0
+                                    }
+                                    linea.contains("Proteínas") -> {
+                                        proteinas = linea.substringAfter(":").trim()
+                                            .replace("[^0-9.]".toRegex(), "")
+                                            .toFloatOrNull() ?: 0f
+                                    }
+                                    linea.contains("Carbohidratos") -> {
+                                        carbohidratos = linea.substringAfter(":").trim()
+                                            .replace("[^0-9.]".toRegex(), "")
+                                            .toFloatOrNull() ?: 0f
+                                    }
+                                    linea.contains("Grasas") -> {
+                                        grasas = linea.substringAfter(":").trim()
+                                            .replace("[^0-9.]".toRegex(), "")
+                                            .toFloatOrNull() ?: 0f
+                                    }
+                                    linea.contains("Fibra") -> {
+                                        fibra = linea.substringAfter(":").trim()
+                                            .replace("[^0-9.]".toRegex(), "")
+                                            .toFloatOrNull() ?: 0f
+                                    }
+                                    linea.contains("Azúcares") -> {
+                                        azucares = linea.substringAfter(":").trim()
+                                            .replace("[^0-9.]".toRegex(), "")
+                                            .toFloatOrNull() ?: 0f
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return RecetaGuardada(
+                nombre = nombre,
+                ingredientes = ingredientes,
+                instrucciones = instrucciones,
+                porciones = porciones,
+                tiempoPreparacion = tiempoPreparacion,
+                valoresNutricionales = ValoresNutricionales(
+                    porcion = porcion,
+                    unidadPorcion = "g",
+                    calorias = calorias,
+                    proteinas = proteinas,
+                    carbohidratos = carbohidratos,
+                    grasas = grasas,
+                    fibra = fibra,
+                    azucares = azucares
+                ),
+                origen = OrigenReceta.IA,
+                fechaCreacion = Date()
+            )
+        } catch (e: Exception) {
+            Log.e("RecetaRepository", "Error generando receta con IA: ${e.message}")
+            return null
+        }
+    }
+
 
     suspend fun procesarYGuardarRecetaAPI(receta: RecetaApi, idPerfil: String): String {
         try {
