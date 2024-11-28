@@ -31,6 +31,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         buildConfigField("String", "apiKey", "\"TU_CLAVE_API_AQUI\"")
+        buildConfigField("String", "NINJA_API_KEY", "\"NINJA_API_KEY\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -132,6 +133,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
+
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")

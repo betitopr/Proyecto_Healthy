@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Proyecto Healthy</string>
+    <string name="app_name">Healthy</string>
     <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID</string>
     <string name="action_go">Go</string>
     <string name="baking_title">Baking with Gemini</string>

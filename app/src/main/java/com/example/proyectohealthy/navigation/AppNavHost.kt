@@ -22,6 +22,7 @@ import com.example.proyectohealthy.screen.auth.RegisterScreen
 import com.example.proyectohealthy.screen.ProfileScreen
 import com.example.proyectohealthy.screen.TeamsScreen//teams
 import com.example.proyectohealthy.screen.progreso.ProgresoScreen
+import com.example.proyectohealthy.screen.recetas.RecetasScreen
 import com.example.proyectohealthy.screen.splash.SplashScreen
 import com.example.proyectohealthy.ui.viewmodel.*
 
@@ -142,8 +143,12 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 authViewModel = authViewModel
             )
         }
+        composable("recetas") {
+            RecetasScreen(perfilViewModel = perfilViewModel,
+                navController = navController,)
+        }
 
-        composable("teams") {
+        composable("comunidad") {
             val teamsViewModel: TeamsViewModel = hiltViewModel()
             TeamsScreen(perfilViewModel = perfilViewModel,
                 navController = navController,

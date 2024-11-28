@@ -37,17 +37,11 @@ import androidx.glance.color.ColorProviders
 import androidx.compose.ui.graphics.Color
 import androidx.glance.ButtonColors
 import androidx.glance.action.ActionParameters
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.layout.Box
 import androidx.glance.unit.ColorProvider
 import androidx.glance.ButtonDefaults
 import androidx.glance.Button
 import androidx.glance.appwidget.action.ActionCallback
-import androidx.glance.appwidget.action.actionRunCallback
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
-import androidx.work.WorkManager
 import com.example.proyectohealthy.MainActivity
 import com.example.proyectohealthy.data.local.entity.RegistroDiario
 import com.example.proyectohealthy.data.repository.RegistroDiarioRepository
@@ -198,7 +192,7 @@ class HealthyWidgetContent @Inject constructor(
                                 .fillMaxWidth()
                                 .padding(top = 8.dp)
                                 .background(ColorProvider(Color.White))
-                                .cornerRadius(16.dp) // Bordes redondeados
+                                //.cornerRadius(16.dp)
                                 .padding(16.dp)
                         ) {
                             Column {
@@ -222,8 +216,8 @@ class HealthyWidgetContent @Inject constructor(
                         Button(
                             text = "Registrar Alimentos",
                             modifier = GlanceModifier
-                                .fillMaxWidth()
-                                .cornerRadius(8.dp),
+                                .fillMaxWidth(),
+                                //.cornerRadius(8.dp),
                             colors = ButtonDefaults.buttonColors(
                                 backgroundColor = ColorProvider(Color.White),
                                 contentColor = ColorProvider(Color(0xFF4CAF50))

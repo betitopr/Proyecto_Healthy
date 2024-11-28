@@ -23,7 +23,7 @@ fun CustomBottomBar(navController: NavController) {
         BottomNavItem("home", "Plan", Icons.Filled.Home),
         BottomNavItem("alimentos", "Alimento", Icons.Filled.Search),
         BottomNavItem("recetas", "Recetas", Icons.Filled.AccountBox),
-        BottomNavItem("teams", "Teams", Icons.Filled.Person),
+        BottomNavItem("comunidad", "Comunidad", Icons.Filled.Person),
         BottomNavItem("progreso", "Progreso", Icons.Filled.DateRange)
     )
 

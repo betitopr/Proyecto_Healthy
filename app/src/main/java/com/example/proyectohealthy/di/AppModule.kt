@@ -4,7 +4,9 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.example.proyectohealthy.AppLifecycleHandler
+import com.example.proyectohealthy.BuildConfig
 import com.example.proyectohealthy.data.remote.OpenFoodFactsApi
+import com.example.proyectohealthy.data.remote.RecetaService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ktx.database
@@ -12,6 +14,7 @@ import com.google.firebase.ktx.Firebase
 import com.example.proyectohealthy.data.repository.*
 import com.example.proyectohealthy.util.RetrofitClient
 import com.example.proyectohealthy.widget.WidgetUpdateManager
+import com.google.ai.client.generativeai.GenerativeModel
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -22,7 +25,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.flow.StateFlow
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import javax.inject.Inject
 
 @Module
@@ -79,16 +85,21 @@ object AppModule {
     fun provideEjercicioRepository(database: FirebaseDatabase): EjercicioRepository =
         EjercicioRepository(database)
 
-    @Provides
-    @Singleton
-    fun provideRecetaFavoritaRepository(database: FirebaseDatabase): RecetaFavoritaRepository =
-        RecetaFavoritaRepository(database)
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     @Provides
     @Singleton
     fun provideRegistroComidaRepository(database: FirebaseDatabase): RegistroComidaRepository =
         RegistroComidaRepository(database)
+
+
+    // Provider para RecetaService
+    @Provides
+    @Singleton
+    fun provideRecetaService(): RecetaService {
+        return RetrofitClient.recetaService
+    }
 
     @Provides
     @Singleton
