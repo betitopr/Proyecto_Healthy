@@ -27,29 +27,29 @@ fun ExplorarRecetasScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Barra de búsqueda con botón
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            BuscadorRecetas(
-                query = searchQuery,
-                onQueryChange = { query ->
-                    viewModel.updateSearchQuery(query)
-                },
-                onSearchClick = {},
-                modifier = Modifier.weight(1f)
-            )
-
-            Button(
-                onClick = {
-                    viewModel.buscarRecetas() // Aquí ya no pasamos el parámetro
-                },
-                enabled = searchQuery.length >= 3
+        // Barra de búsqueda solo se muestra cuando no estamos en modo IA
+        if (!showGeneradorIA) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Buscar")
+                BuscadorRecetas(
+                    query = searchQuery,
+                    onQueryChange = { query ->
+                        viewModel.updateSearchQuery(query)
+                    },
+                    onSearchClick = {},
+                    modifier = Modifier.weight(1f)
+                )
+
+                Button(
+                    onClick = { viewModel.buscarRecetas() },
+                    enabled = searchQuery.length >= 3
+                ) {
+                    Text("Buscar")
+                }
             }
         }
 
@@ -58,30 +58,22 @@ fun ExplorarRecetasScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            when (uiState) {
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.Initial -> {
-                    if (!showGeneradorIA) {
-                        EmptyContent(
-                            title = "Encuentra tu próxima receta",
-                            mensaje = "Busca por nombre o ingrediente\no genera una receta con IA"
-                        )
+            if (showGeneradorIA) {
+                // Sección del Generador IA
+                GeneradorIASection(
+                    onGenerar = { descripcion ->
+                        viewModel.generarReceta(descripcion)
+                    },
+                    isLoading = uiState is ExplorarRecetasViewModel.ExplorarRecetasUiState.Loading
+                )
+            } else {
+                // Sección de búsqueda de recetas
+                when (uiState) {
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.Loading -> {
+                        LoadingContent()
                     }
-                }
-
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.Loading -> {
-                    LoadingContent()
-                }
-
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.Success -> {
-                    val recetas = (uiState as ExplorarRecetasViewModel.ExplorarRecetasUiState.Success).recetas
-                    if (showGeneradorIA) {
-                        GeneradorIASection(
-                            onGenerar = { descripcion, tipo, restricciones ->
-                                viewModel.generarReceta(descripcion, tipo, restricciones)
-                            },
-                            isLoading = false
-                        )
-                    } else {
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.Success -> {
+                        val recetas = (uiState as ExplorarRecetasViewModel.ExplorarRecetasUiState.Success).recetas
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(vertical = 8.dp)
@@ -95,34 +87,62 @@ fun ExplorarRecetasScreen(
                             }
                         }
                     }
-                }
-
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.Empty -> {
-                    EmptyContent(
-                        title = "No se encontraron resultados",
-                        mensaje = "Intenta con otros términos\no genera una receta con IA"
-                    )
-                }
-
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.Error -> {
-                    EmptyContent(
-                        title = "Error",
-                        mensaje = (uiState as ExplorarRecetasViewModel.ExplorarRecetasUiState.Error).message
-                    )
-                }
-
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.RecetaGuardada -> {
-                    LaunchedEffect(Unit) {
-                        onNavigateToMisRecetas()
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.Empty -> {
+                        EmptyContent(
+                            title = "No se encontraron resultados",
+                            mensaje = "Intenta con otros términos\no genera una receta con IA"
+                        )
                     }
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.Error -> {
+                        EmptyContent(
+                            title = "Error",
+                            mensaje = (uiState as ExplorarRecetasViewModel.ExplorarRecetasUiState.Error).message
+                        )
+                    }
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.Initial -> {
+                        EmptyContent(
+                            title = "Encuentra tu próxima receta",
+                            mensaje = "Busca por nombre o ingrediente\no genera una receta con IA"
+                        )
+                    }
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.RecetaGuardada -> {
+                        LaunchedEffect(Unit) {
+                            onNavigateToMisRecetas()
+                        }
+                    }
+                    is ExplorarRecetasViewModel.ExplorarRecetasUiState.GeneracionExitosa -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Card(
+                                modifier = Modifier.padding(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
+                            ) {
+                                Text(
+                                    text = (uiState as ExplorarRecetasViewModel.ExplorarRecetasUiState.GeneracionExitosa).mensaje,
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+                    else -> {}
                 }
-
-                is ExplorarRecetasViewModel.ExplorarRecetasUiState.GeneracionExitosa -> TODO()
             }
 
             // Botón flotante para alternar entre búsqueda y generador IA
             ExtendedFloatingActionButton(
-                onClick = { showGeneradorIA = !showGeneradorIA },
+                onClick = {
+                    showGeneradorIA = !showGeneradorIA
+                    // Limpiar estados al cambiar de modo
+                    if (!showGeneradorIA) {
+                        viewModel.updateSearchQuery("")
+                    }
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier

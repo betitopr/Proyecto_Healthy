@@ -6,6 +6,7 @@ import com.example.proyectohealthy.data.local.entity.RecetaApi
 import com.example.proyectohealthy.data.repository.RecetaRepository
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -76,20 +77,23 @@ class ExplorarRecetasViewModel @Inject constructor(
     }
 
     // Solo se ejecuta al presionar generar
-    fun generarReceta(descripcion: String, tipoComida: String, restricciones: String) {
+    fun generarReceta(descripcion: String) {
         viewModelScope.launch {
             try {
                 _uiState.value = ExplorarRecetasUiState.Loading
                 val userId = auth.currentUser?.uid ?: throw IllegalStateException("Usuario no autenticado")
 
-                // Generar la receta con IA
-                val recetaGenerada = recetaRepository.generarRecetaConIA(descripcion, tipoComida, restricciones)
-                    ?: throw IllegalStateException("No se pudo generar la receta")
+                val recetaGenerada = recetaRepository.generarRecetaConIA(descripcion)
+                    ?: throw IllegalStateException("Error al generar receta")
 
-                // Guardar la receta generada
                 val recetaCompleta = recetaGenerada.copy(idPerfil = userId)
                 recetaRepository.createOrUpdateReceta(recetaCompleta)
 
+                // Primero mostramos mensaje de éxito
+                _uiState.value = ExplorarRecetasUiState.GeneracionExitosa("Receta generada exitosamente y guardada en Mis Recetas")
+
+                // Después de un delay, navegamos a mis recetas
+                delay(1500)
                 _uiState.value = ExplorarRecetasUiState.RecetaGuardada(recetaCompleta)
             } catch (e: Exception) {
                 _uiState.value = ExplorarRecetasUiState.Error("Error al generar receta: ${e.message}")

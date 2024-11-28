@@ -1,8 +1,11 @@
 package com.example.proyectohealthy.screen.splash
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -24,11 +27,12 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(onSplashFinished: () -> Unit) {
-
     var isLoading by remember { mutableStateOf(true) }
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val textColor = backgroundColor.copy(alpha = 0.6f)  // Color sutilmente más oscuro/claro
 
     LaunchedEffect(Unit) {
-        delay(1500) // Tiempo mínimo del splash
+        delay(1500)
         isLoading = false
         onSplashFinished()
     }
@@ -37,19 +41,31 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.food_image),
-            contentDescription = "App Logo",
-            modifier = Modifier
-                .size(200.dp)
-                .clip(CircleShape),
-            contentScale = ContentScale.Crop
-        )
-        Text(
-            "Healthy",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-    }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.food_image),
+                contentDescription = "App Logo",
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
 
+            Text(
+                "Healthy",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+
+            Text(
+                "by Marte-sama",
+                style = MaterialTheme.typography.bodySmall,
+                color = textColor,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
 }
