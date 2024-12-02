@@ -82,6 +82,8 @@ class MisRecetasViewModel @Inject constructor(
 
                 if (misAlimentos.isNotEmpty()) {
                     _uiState.value = MisRecetasUiState.Error("Esta receta ya está en Mis Alimentos")
+                    delay(1500) // Mostrar el error por 1.5 segundos
+                    cargarRecetas() // Volver al estado anterior
                     return@launch
                 }
 
@@ -90,12 +92,15 @@ class MisRecetasViewModel @Inject constructor(
                 misAlimentosRepository.createOrUpdateMiAlimento(alimento)
                 _uiState.value = MisRecetasUiState.AlimentoAgregado
 
-                // Recargar después de un breve delay
-                delay(500)
+                // Esperar un momento y luego volver al estado inicial
+                delay(1500) // Mostrar mensaje de éxito por 1.5 segundos
+                _uiState.value = MisRecetasUiState.Initial
                 cargarRecetas()
             } catch (e: Exception) {
                 _error.value = "Error al agregar a mis alimentos: ${e.message}"
                 _uiState.value = MisRecetasUiState.Error(e.message ?: "Error desconocido")
+                delay(1500)
+                cargarRecetas()
             }
         }
     }
@@ -112,6 +117,11 @@ class MisRecetasViewModel @Inject constructor(
                 _uiState.value = MisRecetasUiState.Error(e.message ?: "Error desconocido")
             }
         }
+    }
+
+    fun resetState() {
+        _uiState.value = MisRecetasUiState.Initial
+        cargarRecetas()
     }
 
     fun clearError() {

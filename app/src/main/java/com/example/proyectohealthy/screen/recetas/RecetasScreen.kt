@@ -9,16 +9,35 @@ import com.example.proyectohealthy.components.CustomBottomBar
 import com.example.proyectohealthy.components.CustomTopBar
 import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.proyectohealthy.ui.viewmodel.MisRecetasViewModel
 import com.example.proyectohealthy.ui.viewmodel.PerfilViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecetasScreen(
     navController: NavController,
-    perfilViewModel: PerfilViewModel
+    perfilViewModel: PerfilViewModel,
+    viewModel: MisRecetasViewModel = hiltViewModel()
+
 ) {
     val perfilState by perfilViewModel.currentPerfil.collectAsState()
     var selectedTabIndex by remember { mutableStateOf(0) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            // Resetear el estado cuando se desmonte la pantalla
+            if (selectedTabIndex == 1) {
+                viewModel.resetState()
+            }
+        }
+    }
+
+    LaunchedEffect(selectedTabIndex) {
+        // Resetear el estado cuando cambie de pestaña
+        if (selectedTabIndex == 0) {
+            viewModel.resetState()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -37,11 +56,13 @@ fun RecetasScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Pestañas
             TabRow(selectedTabIndex) {
                 Tab(
                     selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 }
+                    onClick = {
+                        selectedTabIndex = 0
+                        viewModel.resetState()  // Resetear estado al cambiar a Explorar
+                    }
                 ) {
                     Text(
                         text = "Explorar",
@@ -59,7 +80,6 @@ fun RecetasScreen(
                 }
             }
 
-            // Contenido
             when (selectedTabIndex) {
                 0 -> ExplorarRecetasScreen(
                     onNavigateToMisRecetas = { selectedTabIndex = 1 }

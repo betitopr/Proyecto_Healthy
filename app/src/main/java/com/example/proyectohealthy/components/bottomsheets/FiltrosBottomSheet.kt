@@ -316,9 +316,14 @@ fun NutrientRangeSelector(
         mutableStateOf(if (range.max == Float.MAX_VALUE) "" else range.max.toString())
     }
 
-    // Estado para el foco de los campos
     var minFieldFocus by remember { mutableStateOf(false) }
     var maxFieldFocus by remember { mutableStateOf(false) }
+
+    fun updateRange(newMin: Float = range.min, newMax: Float = range.max) {
+        if (range.isEnabled) {
+            onRangeChanged(range.copy(min = newMin, max = newMax))
+        }
+    }
 
     fun validateAndUpdateValue(
         value: String,
@@ -356,7 +361,6 @@ fun NutrientRangeSelector(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Fila superior con título y switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -369,12 +373,18 @@ fun NutrientRangeSelector(
                 Switch(
                     checked = range.isEnabled,
                     onCheckedChange = { enabled ->
-                        onRangeChanged(range.copy(isEnabled = enabled))
+                        // Cuando se activa el switch, automáticamente aplicar los valores actuales
+                        if (enabled) {
+                            val currentMin = minText.toFloatOrNull() ?: 0f
+                            val currentMax = maxText.toFloatOrNull() ?: Float.MAX_VALUE
+                            onRangeChanged(range.copy(isEnabled = true, min = currentMin, max = currentMax))
+                        } else {
+                            onRangeChanged(range.copy(isEnabled = false))
+                        }
                     }
                 )
             }
 
-            // Campos de entrada visibles solo si está habilitado
             AnimatedVisibility(visible = range.isEnabled) {
                 Column {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -385,46 +395,42 @@ fun NutrientRangeSelector(
                     ) {
                         OutlinedTextField(
                             value = minText,
-                            onValueChange = { minText = it },
+                            onValueChange = { newValue ->
+                                minText = newValue
+                                validateAndUpdateValue(newValue, true,
+                                    onValidValue = { validMin ->
+                                        updateRange(newMin = validMin)
+                                    },
+                                    onInvalidValue = {
+                                        minText = if (range.min == 0f) "" else range.min.toString()
+                                    }
+                                )
+                            },
                             label = { Text("Mín") },
                             modifier = Modifier
                                 .weight(1f)
-                                .onFocusChanged { focusState ->
-                                    if (minFieldFocus && !focusState.isFocused) {
-                                        validateAndUpdateValue(minText, true,
-                                            onValidValue = { validValue ->
-                                                onRangeChanged(range.copy(min = validValue))
-                                            },
-                                            onInvalidValue = {
-                                                minText = if (range.min == 0f) "" else range.min.toString()
-                                            }
-                                        )
-                                    }
-                                    minFieldFocus = focusState.isFocused
-                                },
+                                .onFocusChanged { minFieldFocus = it.isFocused },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
 
                         OutlinedTextField(
                             value = maxText,
-                            onValueChange = { maxText = it },
+                            onValueChange = { newValue ->
+                                maxText = newValue
+                                validateAndUpdateValue(newValue, false,
+                                    onValidValue = { validMax ->
+                                        updateRange(newMax = validMax)
+                                    },
+                                    onInvalidValue = {
+                                        maxText = if (range.max == Float.MAX_VALUE) "" else range.max.toString()
+                                    }
+                                )
+                            },
                             label = { Text("Máx") },
                             modifier = Modifier
                                 .weight(1f)
-                                .onFocusChanged { focusState ->
-                                    if (maxFieldFocus && !focusState.isFocused) {
-                                        validateAndUpdateValue(maxText, false,
-                                            onValidValue = { validValue ->
-                                                onRangeChanged(range.copy(max = validValue))
-                                            },
-                                            onInvalidValue = {
-                                                maxText = if (range.max == Float.MAX_VALUE) "" else range.max.toString()
-                                            }
-                                        )
-                                    }
-                                    maxFieldFocus = focusState.isFocused
-                                },
+                                .onFocusChanged { maxFieldFocus = it.isFocused },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
@@ -454,13 +460,6 @@ fun NutrientRangeSelector(
                 TextButton(onClick = { showErrorDialog = false }) {
                     Text("Entendido")
                 }
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Error,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
             }
         )
     }

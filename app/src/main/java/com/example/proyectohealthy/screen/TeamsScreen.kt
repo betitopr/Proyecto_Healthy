@@ -43,7 +43,7 @@ fun TeamsScreen(
         topBar = {
             CustomTopBar(
                 navController = navController,
-                title = "Comunidad",
+                title = "Teams",
                 userPhotoUrl = perfilState?.perfilImagen
             )
         },

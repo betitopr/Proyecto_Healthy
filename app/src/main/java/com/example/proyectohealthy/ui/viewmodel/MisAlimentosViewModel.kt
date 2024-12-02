@@ -112,22 +112,26 @@ class MisAlimentosViewModel @Inject constructor(
         with(filtros) {
             if (caloriesRange.isEnabled) {
                 resultado = resultado.filter {
-                    it.calorias.toFloat() in caloriesRange.min..caloriesRange.max
+                    it.calorias.toFloat() >= caloriesRange.min &&
+                            (caloriesRange.max == Float.MAX_VALUE || it.calorias.toFloat() <= caloriesRange.max)
                 }
             }
             if (proteinsRange.isEnabled) {
                 resultado = resultado.filter {
-                    it.proteinas in proteinsRange.min..proteinsRange.max
+                    it.proteinas >= proteinsRange.min &&
+                            (proteinsRange.max == Float.MAX_VALUE || it.proteinas <= proteinsRange.max)
                 }
             }
             if (carbsRange.isEnabled) {
                 resultado = resultado.filter {
-                    it.carbohidratos in carbsRange.min..carbsRange.max
+                    it.carbohidratos >= carbsRange.min &&
+                            (carbsRange.max == Float.MAX_VALUE || it.carbohidratos <= carbsRange.max)
                 }
             }
             if (fatsRange.isEnabled) {
                 resultado = resultado.filter {
-                    it.grasas in fatsRange.min..fatsRange.max
+                    it.grasas >= fatsRange.min &&
+                            (fatsRange.max == Float.MAX_VALUE || it.grasas <= fatsRange.max)
                 }
             }
         }

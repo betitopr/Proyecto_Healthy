@@ -148,7 +148,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 navController = navController,)
         }
 
-        composable("comunidad") {
+        composable("Teams") {
             val teamsViewModel: TeamsViewModel = hiltViewModel()
             TeamsScreen(perfilViewModel = perfilViewModel,
                 navController = navController,

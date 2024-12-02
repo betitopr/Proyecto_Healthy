@@ -39,6 +39,9 @@ fun TeamPostItem(
     var autorPerfil by remember { mutableStateOf<Perfil?>(null) }
     var showComments by remember { mutableStateOf(false) }
     var newComment by remember { mutableStateOf("") }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editedContent by remember { mutableStateOf(post.content) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     // Cargar perfil del autor
     LaunchedEffect(post.autorId) {
@@ -56,32 +59,23 @@ fun TeamPostItem(
         ) {
             // Header con foto y nombre clickeables
             Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Foto de perfil
                 AsyncImage(
                     model = autorPerfil?.perfilImagen ?: "/api/placeholder/40/40",
                     contentDescription = "Foto de perfil",
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .clickable {
-                            navController.navigate("profile/${post.autorId}")
-                        }
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Información del autor
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = autorPerfil?.username ?: "Usuario",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.clickable {
-                            navController.navigate("profile/${post.autorId}")
-                        }
+                        style = MaterialTheme.typography.titleMedium
                     )
                     Text(
                         text = "Publicado hace ${getTimeAgo(post.timestamp)}",
@@ -89,17 +83,26 @@ fun TeamPostItem(
                     )
                 }
 
-                // Si el post es del usuario actual, mostrar opciones de editar/eliminar
                 if (currentPerfil?.uid == post.autorId) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        IconButton(onClick = { onUpdate(post.content) }) {
-                            Icon(Icons.Default.Edit, "Editar")
+                    Row {
+                        IconButton(
+                            onClick = {
+                                editedContent = post.content
+                                showEditDialog = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Editar",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
-                        IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, "Eliminar")
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Eliminar",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }
@@ -227,6 +230,62 @@ fun TeamPostItem(
                 }
             }
         }
+    }
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Editar publicación") },
+            text = {
+                OutlinedTextField(
+                    value = editedContent,
+                    onValueChange = { editedContent = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Contenido") }
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUpdate(editedContent)
+                        showEditDialog = false
+                    }
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Diálogo de confirmación para eliminar
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("¿Eliminar publicación?") },
+            text = { Text("¿Estás seguro de que quieres eliminar esta publicación?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
