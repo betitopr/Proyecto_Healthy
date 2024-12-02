@@ -313,9 +313,7 @@ private fun CommentItem(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .clickable {
-                    navController.navigate("profile/${comment.autorId}")
-                }
+
         )
 
         Spacer(modifier = Modifier.width(8.dp))
